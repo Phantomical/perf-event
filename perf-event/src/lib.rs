@@ -209,6 +209,9 @@ pub struct Builder<'a> {
 
 #[derive(Debug)]
 enum EventPid<'a> {
+    /// Monitor any process.
+    Any,
+
     /// Monitor the calling process.
     ThisProcess,
 
@@ -433,6 +436,7 @@ impl<'a> EventPid<'a> {
     // Return the `pid` arg and the `flags` bits representing `self`.
     fn as_args(&self) -> (pid_t, u32) {
         match self {
+            EventPid::Any => (-1, 0),
             EventPid::ThisProcess => (0, 0),
             EventPid::Other(pid) => (*pid, 0),
             EventPid::CGroup(file) => (file.as_raw_fd(), sys::bindings::PERF_FLAG_PID_CGROUP),
@@ -477,6 +481,18 @@ impl<'a> Builder<'a> {
         Builder::default()
     }
 
+    /// Include kernel code.
+    pub fn include_kernel(mut self) -> Builder<'a> {
+        self.attrs.set_exclude_kernel(0);
+        self
+    }
+
+    /// Include hypervisor code.
+    pub fn include_hv(mut self) -> Builder<'a> {
+        self.attrs.set_exclude_hv(0);
+        self
+    }
+    
     /// Observe the calling process. (This is the default.)
     pub fn observe_self(mut self) -> Builder<'a> {
         self.who = EventPid::ThisProcess;
@@ -489,6 +505,15 @@ impl<'a> Builder<'a> {
     /// [man-capabilities]: http://man7.org/linux/man-pages/man7/capabilities.7.html
     pub fn observe_pid(mut self, pid: pid_t) -> Builder<'a> {
         self.who = EventPid::Other(pid);
+        self
+    }
+
+    /// Observe all processes. This requires
+    /// [`CAP_SYS_PTRACE`][man-capabilities] capabilities.
+    /// 
+    /// [man-capabilities]: http://man7.org/linux/man-pages/man7/capabilities.7.html
+    pub fn any_pid(mut self) -> Builder<'a> {
+        self.who = EventPid::Any;
         self
     }
 
