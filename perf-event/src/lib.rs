@@ -201,7 +201,8 @@ pub struct Counter {
 /// [`kind`]: Builder::kind
 /// [`group`]: Builder::group
 pub struct Builder<'a> {
-    attrs: perf_event_attr,
+    /// Raw [`perf_event_attr`] struct that will be passed to `perf_event_open(2)`.
+    pub attrs: perf_event_attr,
     who: EventPid<'a>,
     cpu: Option<usize>,
     group: Option<&'a mut Group>,
