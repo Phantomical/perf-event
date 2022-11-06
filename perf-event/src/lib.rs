@@ -201,7 +201,8 @@ pub struct Counter {
 /// [`kind`]: Builder::kind
 /// [`group`]: Builder::group
 pub struct Builder<'a> {
-    attrs: perf_event_attr,
+    /// Raw [`perf_event_attr`] struct that will be passed to `perf_event_open(2)`.
+    pub attrs: perf_event_attr,
     who: EventPid<'a>,
     cpu: Option<usize>,
     group: Option<&'a mut Group>,
@@ -774,6 +775,18 @@ impl std::fmt::Debug for Counter {
     }
 }
 
+impl std::os::unix::io::AsRawFd for Counter {
+    fn as_raw_fd(&self) -> std::os::fd::RawFd {
+        self.file.as_raw_fd()
+    }
+}
+
+impl std::os::unix::io::IntoRawFd for Counter {
+    fn into_raw_fd(self) -> std::os::fd::RawFd {
+        self.file.into_raw_fd()
+    }
+}
+
 impl Group {
     /// Construct a new, empty `Group`.
     #[allow(unused_parens)]
@@ -907,6 +920,18 @@ impl std::fmt::Debug for Group {
             self.file.as_raw_fd(),
             self.id
         )
+    }
+}
+
+impl std::os::unix::io::AsRawFd for Group {
+    fn as_raw_fd(&self) -> std::os::fd::RawFd {
+        self.file.as_raw_fd()
+    }
+}
+
+impl std::os::unix::io::IntoRawFd for Group {
+    fn into_raw_fd(self) -> std::os::fd::RawFd {
+        self.file.into_raw_fd()
     }
 }
 
