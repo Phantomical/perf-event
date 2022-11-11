@@ -770,6 +770,19 @@ impl<'a> Builder<'a> {
         self
     }
 
+    /// Enable the generation of [`Fork`] and [`Exit`] records.
+    ///
+    /// These track calls to [`fork(2)`] and [`exit(2)`], respectively.
+    ///
+    /// [`Fork`]: crate::samples::RecordType::FORK
+    /// [`Exit`]: crate::samples::RecordType::EXIT
+    /// [`fork(2)`]: https://man7.org/linux/man-pages/man2/fork.2.html
+    /// [`exit(2)`]: https://man7.org/linux/man-pages/man2/exit.2.html
+    pub fn task(mut self, task: bool) -> Self {
+        self.attrs.set_task(task.into());
+        self
+    }
+
     /// Set how many bytes will be written before the kernel sends an overflow
     /// notification.
     ///
