@@ -951,6 +951,29 @@ impl<'a> Builder<'a> {
         self
     }
 
+    /// Ensure that each event includes some common info about where the event
+    /// occurred.
+    ///
+    /// If set, then [`TID`], [`TIME`], [`ID`], [`STREAM_ID`], and [`CPU`] can
+    /// additionally be included in non-[`SAMPLE`] records if the corresponding
+    /// values have been enabled via [`sample`].
+    ///
+    /// If [`IDENTIFIER`] is selected, then an additional ID value is included
+    /// as the last value to ease parsing the record stream. This crate will
+    /// transparently handle this and will set the `id` field in [`SampleId`]
+    /// if either of [`Sample::IDENTIFIER`] or [`Sample::ID`] is selected.
+    ///
+    /// [`TID`]: Sample::TID
+    /// [`TIME`]: Sample::TIME
+    /// [`ID`]: Sample::ID
+    /// [`STREAM_ID`]: Sample::STREAM_ID
+    /// [`CPU`]: Sample::CPU
+    /// [`sample`]: Self::sample
+    pub fn sample_id_all(mut self, value: bool) -> Self {
+        self.attrs.set_sample_id_all(value.into());
+        self
+    }
+
     /// Construct a [`Sampler`] according to the specifications made on this
     /// `Builder`.
     ///
