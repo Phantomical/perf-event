@@ -1,5 +1,6 @@
 use std::fmt;
 
+mod lost;
 mod mmap;
 
 #[derive(Copy, Clone, Eq, PartialEq)]
