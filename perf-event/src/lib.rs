@@ -594,6 +594,15 @@ impl<'a> Builder<'a> {
         self
     }
 
+    /// If set, the counter is automatically enabled after a call to
+    /// [`execve(2)`].
+    ///
+    /// [`execve(2)`]: https://man7.org/linux/man-pages/man2/execve.2.html
+    pub fn enable_on_exec(mut self, value: bool) -> Self {
+        self.attrs.set_enable_on_exec(value.into());
+        self
+    }
+
     /// Count events of the given kind. This accepts an [`Event`] value,
     /// or any type that can be converted to one, so you can pass [`Hardware`],
     /// [`Software`] and [`Cache`] values directly.
