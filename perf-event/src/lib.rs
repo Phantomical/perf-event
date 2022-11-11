@@ -726,6 +726,67 @@ impl<'a> Builder<'a> {
         self
     }
 
+    /// Set the frequency at which the kernel will generate a [`Sample`] event.
+    ///
+    /// This setting is mutually exclusive with [`sample_period`]. Setting one
+    /// will disable the other.
+    ///
+    /// Note that this will not result in the kernel sampling at exactly the
+    /// frequency specified by `freq`. Instead, it will dynamically adjust the
+    /// period at which events are sampled in order to try and maintain the
+    /// requested sampling frequency.
+    ///
+    /// # Example
+    /// Here we build a sampler that will gather a stack of our process roughly
+    /// every 0.1s.
+    /// ```
+    /// # use perf_event::{Builder, samples::SampleType, events::Software};
+    /// let mut sampler = Builder::new()
+    ///     .kind(Software::CPU_CLOCK)
+    ///     .sample(SampleType::CALLCHAIN)
+    ///     .sample_frequency(10)
+    ///     .build_sampler(5000)?;
+    /// # Ok::<_, std::io::Error>(())
+    /// ```
+    ///
+    /// [`Sample`]: crate::samples::RecordType::SAMPLE
+    /// [`sample_period`]: Self::sample_period
+    pub fn sample_frequency(mut self, freq: u64) -> Self {
+        self.attrs.__bindgen_anon_1.sample_freq = freq;
+        self.attrs.set_freq(true.into());
+        self
+    }
+
+    /// Set the period at which the kernel will generate a [`Sample`] event.
+    ///
+    /// This setting is mutually exclusive with [`sample_frequency`]. Setting
+    /// one will disable the other.
+    ///
+    /// # Example
+    /// Here we build a sampler that will record the call stack of our process
+    /// on every 1000th last-level cache miss.
+    /// ```
+    /// # use perf_event::{Builder, samples::SampleType};
+    /// # use perf_event::events::{Cache, WhichCache, CacheOp, CacheResult};
+    /// let mut sampler = Builder::new()
+    ///     .kind(Cache {
+    ///         which: WhichCache::LL,
+    ///         operation: CacheOp::READ,
+    ///         result: CacheResult::MISS,
+    ///     })
+    ///     .sample(SampleType::CALLCHAIN)
+    ///     .build_sampler(4096)?;
+    /// # Ok::<_, std::io::Error>(())
+    /// ```
+    ///
+    /// [`Sample`]: crate::samples::RecordType::SAMPLE
+    /// [`sample_frequency`]: Self::sample_frequency
+    pub fn sample_period(mut self, period: u64) -> Self {
+        self.attrs.__bindgen_anon_1.sample_period = period;
+        self.attrs.set_freq(false.into());
+        self
+    }
+
     /// Enable the generation of [`Mmap`] records.
     ///
     /// [`Mmap`] records are emitted when the process/thread that is being
