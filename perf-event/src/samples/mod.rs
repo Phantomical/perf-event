@@ -16,9 +16,11 @@ use bytes::Buf;
 use perf_event_open_sys::bindings::{self, perf_event_attr, perf_event_header};
 use std::fmt;
 
+mod lost;
 mod mmap;
 
 pub use self::bitflags_defs::{RecordMiscFlags, SampleType};
+pub use self::lost::Lost;
 pub use self::mmap::Mmap;
 
 // Need a module here to avoid the allow applying to everything.
@@ -234,6 +236,9 @@ pub enum RecordEvent {
     /// Record of a new memory map.
     Mmap(Mmap),
 
+    /// Record indicating that the kernel dropped some events.
+    Lost(Lost),
+
     /// An event was generated but `perf-event` was not able to parse it.
     ///
     /// Instead, the bytes making up the event are available here.
@@ -264,6 +269,7 @@ impl Record {
         let mut limited = buf.take(buf.remaining() - sample_id_len.unwrap_or(0));
         let event = match ty {
             RecordType::MMAP => Mmap::parse(config, &mut limited).into(),
+            RecordType::LOST => Lost::parse(config, &mut limited).into(),
             _ => RecordEvent::Unknown(limited.parse_remainder()),
         };
 
