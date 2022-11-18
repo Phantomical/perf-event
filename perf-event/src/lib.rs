@@ -728,6 +728,39 @@ impl<'a> Builder<'a> {
         self
     }
 
+    /// Enable the generation of [`Comm`] records.
+    ///
+    /// [`Comm`] records are emitted when a process/thread changes its name.
+    /// This can happen through [`execve(2)`], [`prctl(PR_SET_NAME)`], or by
+    /// writing directly to `/proc/self/comm`.
+    ///
+    /// If you need to distinguish between [`execve(2)`] and other ways of
+    /// setting the process name, see the [`comm_exec`] method.
+    ///
+    /// [`execve(2)`]: https://man7.org/linux/man-pages/man2/execve.2.html
+    /// [`prctl(PR_SET_NAME)`]: https://man7.org/linux/man-pages/man2/prctl.2.html
+    /// [`Comm`]: crate::samples::Comm
+    /// [`comm_exec`]: Self::comm_exec
+    pub fn comm(mut self, comm: bool) -> Self {
+        self.attrs.set_comm(comm.into());
+        self
+    }
+
+    /// Ensure that the [`COMM_EXEC`] misc bit is set if a [`Comm`] record is
+    /// generated due to an [`execve(2)`] syscall.
+    ///
+    /// Note that this is purely a feature detection flag. Since Linux 3.10 the
+    /// [`COMM_EXEC`] flag will always be set if applicable even if `comm_exec`
+    /// was not specified when building the [`Sampler`].
+    ///
+    /// [`COMM_EXEC`]: crate::samples::RecordMiscFlags::COMM_EXEC
+    /// [`Comm`]: crate::samples::Comm
+    /// [`execve(2)`]: https://man7.org/linux/man-pages/man2/execve.2.html
+    pub fn comm_exec(mut self, comm_exec: bool) -> Self {
+        self.attrs.set_comm_exec(comm_exec.into());
+        self
+    }
+
     /// Set how many bytes will be written before the kernel sends an overflow
     /// notification.
     ///

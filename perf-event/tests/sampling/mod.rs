@@ -1,5 +1,6 @@
 use std::fmt;
 
+mod comm;
 mod lost;
 mod mmap;
 
