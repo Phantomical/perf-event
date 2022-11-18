@@ -1,6 +1,7 @@
 use std::fmt;
 
 mod comm;
+mod exit;
 mod lost;
 mod mmap;
 

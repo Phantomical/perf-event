@@ -17,11 +17,13 @@ use perf_event_open_sys::bindings::{self, perf_event_attr, perf_event_header};
 use std::fmt;
 
 mod comm;
+mod exit;
 mod lost;
 mod mmap;
 
 pub use self::bitflags_defs::{RecordMiscFlags, SampleType};
 pub use self::comm::Comm;
+pub use self::exit::Exit;
 pub use self::lost::Lost;
 pub use self::mmap::Mmap;
 
@@ -251,6 +253,9 @@ pub enum RecordEvent {
     /// Record indicating that a process name changed.
     Comm(Comm),
 
+    /// Record indicating that a process exited.
+    Exit(Exit),
+
     /// An event was generated but `perf-event` was not able to parse it.
     ///
     /// Instead, the bytes making up the event are available here.
@@ -283,6 +288,7 @@ impl Record {
             RecordType::MMAP => Mmap::parse(config, &mut limited).into(),
             RecordType::LOST => Lost::parse(config, &mut limited).into(),
             RecordType::COMM => Comm::parse(config, &mut limited).into(),
+            RecordType::EXIT => Exit::parse(config, &mut limited).into(),
             _ => RecordEvent::Unknown(limited.parse_remainder()),
         };
 
