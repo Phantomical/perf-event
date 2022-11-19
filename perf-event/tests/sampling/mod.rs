@@ -2,6 +2,7 @@ use std::fmt;
 
 mod comm;
 mod exit;
+mod fork;
 mod lost;
 mod mmap;
 

@@ -18,12 +18,14 @@ use std::fmt;
 
 mod comm;
 mod exit;
+mod fork;
 mod lost;
 mod mmap;
 
 pub use self::bitflags_defs::{RecordMiscFlags, SampleType};
 pub use self::comm::Comm;
 pub use self::exit::Exit;
+pub use self::fork::Fork;
 pub use self::lost::Lost;
 pub use self::mmap::Mmap;
 
@@ -256,6 +258,9 @@ pub enum RecordEvent {
     /// Record indicating that a process exited.
     Exit(Exit),
 
+    /// Record indicating that a process forked.
+    Fork(Fork),
+
     /// An event was generated but `perf-event` was not able to parse it.
     ///
     /// Instead, the bytes making up the event are available here.
@@ -289,6 +294,7 @@ impl Record {
             RecordType::LOST => Lost::parse(config, &mut limited).into(),
             RecordType::COMM => Comm::parse(config, &mut limited).into(),
             RecordType::EXIT => Exit::parse(config, &mut limited).into(),
+            RecordType::FORK => Fork::parse(config, &mut limited).into(),
             _ => RecordEvent::Unknown(limited.parse_remainder()),
         };
 
