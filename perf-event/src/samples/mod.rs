@@ -21,6 +21,7 @@ mod exit;
 mod fork;
 mod lost;
 mod mmap;
+mod throttle;
 
 pub use self::bitflags_defs::{RecordMiscFlags, SampleType};
 pub use self::comm::Comm;
@@ -28,6 +29,7 @@ pub use self::exit::Exit;
 pub use self::fork::Fork;
 pub use self::lost::Lost;
 pub use self::mmap::Mmap;
+pub use self::throttle::Throttle;
 
 // Need a module here to avoid the allow applying to everything.
 #[allow(missing_docs)]
@@ -261,6 +263,14 @@ pub enum RecordEvent {
     /// Record indicating that a process forked.
     Fork(Fork),
 
+    /// Record indicating that the kernel disabled the generation of sample
+    /// events due to too many being emitted in a single timer tick.
+    Throttle(Throttle),
+
+    /// Record indicating that the kernel has re-enabled the generation of
+    /// sample events after the counter was throttled.
+    Unthrottle(Throttle),
+
     /// An event was generated but `perf-event` was not able to parse it.
     ///
     /// Instead, the bytes making up the event are available here.
@@ -294,6 +304,10 @@ impl Record {
             RecordType::LOST => Lost::parse(config, &mut limited).into(),
             RecordType::COMM => Comm::parse(config, &mut limited).into(),
             RecordType::EXIT => Exit::parse(config, &mut limited).into(),
+            RecordType::THROTTLE => RecordEvent::Throttle(Throttle::parse(config, &mut limited)),
+            RecordType::UNTHROTTLE => {
+                RecordEvent::Unthrottle(Throttle::parse(config, &mut limited))
+            }
             RecordType::FORK => Fork::parse(config, &mut limited).into(),
             _ => RecordEvent::Unknown(limited.parse_remainder()),
         };
