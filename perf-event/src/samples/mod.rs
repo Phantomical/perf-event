@@ -23,7 +23,7 @@ mod lost;
 mod mmap;
 mod throttle;
 
-pub use self::bitflags_defs::{RecordMiscFlags, SampleType};
+pub use self::bitflags_defs::{ReadFormat, RecordMiscFlags, SampleType};
 pub use self::comm::Comm;
 pub use self::exit::Exit;
 pub use self::fork::Fork;
@@ -82,6 +82,21 @@ mod bitflags_defs {
     }
 
     bitflags! {
+        /// Bitfield specifying which fields are returned when reading the counter.
+        ///
+        /// See the [manpage] for documentation on what each flag means.
+        ///
+        /// [manpage]: http://man7.org/linux/man-pages/man2/perf_event_open.2.html
+        #[derive(Default)]
+        pub struct ReadFormat : u64 {
+            const TOTAL_TIME_ENABLED = bindings::PERF_FORMAT_TOTAL_TIME_ENABLED as _;
+            const TOTAL_TIME_RUNNING = bindings::PERF_FORMAT_TOTAL_TIME_RUNNING as _;
+            const ID = bindings::PERF_FORMAT_ID as _;
+            const GROUP = bindings::PERF_FORMAT_GROUP as _;
+        }
+    }
+
+    bitflags! {
         /// Additional flags about the record event.
         ///
         /// Not all of these apply for every record type and in certain cases the
@@ -125,6 +140,13 @@ mod bitflags_defs {
 
     impl SampleType {
         /// Create a sample from the underlying bits.
+        pub const fn new(bits: u64) -> Self {
+            Self { bits }
+        }
+    }
+
+    /// Create a new read format from the underlying bits.
+    impl ReadFormat {
         pub const fn new(bits: u64) -> Self {
             Self { bits }
         }
@@ -277,12 +299,66 @@ pub enum RecordEvent {
     Unknown(Vec<u8>),
 }
 
+/// Value of a counter along with some additional info.
+#[derive(Copy, Clone, Debug)]
+pub struct CounterValue {
+    /// The value of the counter.
+    pub value: u64,
+
+    /// The number of nanoseconds for which this counter was enabled.
+    pub time_enabled: Option<u64>,
+
+    /// The number of nanoseconds for which this counter was both enabled and
+    /// being updated.
+    pub time_running: Option<u64>,
+
+    /// Unique ID that identifies which stream this is from.
+    pub id: Option<u64>,
+}
+
+/// The values of all counters in a group.
+#[derive(Clone, Debug)]
+pub struct GroupValue {
+    /// The number of nanoseconds for which this counter group was enabled.
+    pub time_enabled: Option<u64>,
+
+    /// The number of nanoseconds that this counter group was both enabled and
+    /// being updated.
+    pub time_running: Option<u64>,
+
+    /// The values of all counters within the group.
+    pub values: Vec<GroupValueEntry>,
+}
+
+/// The value of a single counter within a counter group.
+#[derive(Copy, Clone, Debug)]
+pub struct GroupValueEntry {
+    /// The count of events as recorded by the counter.
+    pub value: u64,
+
+    /// A unique ID for this counter.
+    pub id: Option<u64>,
+}
+
+/// A value as part of a `RecordEvent::Sample` or `RecordEvent::Read`.
+///
+/// This corresponds to the `read_format` struct in the [manpage].
+///
+/// [manpage]: http://man7.org/linux/man-pages/man2/perf_event_open.2.html
+#[derive(Clone, Debug)]
+#[allow(missing_docs)]
+pub enum ReadValue {
+    Counter(CounterValue),
+    Group(GroupValue),
+}
+
 /// All the config info needed to parse a record from the perf ring buffer.
 ///
 /// If you need something new, add it here!
 #[derive(Default)]
 pub(crate) struct ParseConfig {
     sample_type: SampleType,
+    read_format: ReadFormat,
     sample_id_all: bool,
 }
 
@@ -403,6 +479,7 @@ impl From<&'_ perf_event_attr> for ParseConfig {
     fn from(attr: &perf_event_attr) -> Self {
         Self {
             sample_type: SampleType::new(attr.sample_type),
+            read_format: ReadFormat::new(attr.read_format),
             sample_id_all: attr.sample_id_all() != 0,
         }
     }
@@ -521,6 +598,80 @@ impl Parse for SampleId {
         }
 
         sample
+    }
+}
+
+impl Parse for CounterValue {
+    fn parse<B: Buf>(config: &ParseConfig, buf: &mut B) -> Self
+    where
+        Self: Sized,
+    {
+        Self {
+            value: buf.get_u64_ne(),
+            time_enabled: config
+                .read_format
+                .contains(ReadFormat::TOTAL_TIME_ENABLED)
+                .then(|| buf.get_u64_ne()),
+            time_running: config
+                .read_format
+                .contains(ReadFormat::TOTAL_TIME_RUNNING)
+                .then(|| buf.get_u64_ne()),
+            id: config
+                .read_format
+                .contains(ReadFormat::ID)
+                .then(|| buf.get_u64_ne()),
+        }
+    }
+}
+
+impl Parse for GroupValue {
+    fn parse<B: Buf>(config: &ParseConfig, buf: &mut B) -> Self
+    where
+        Self: Sized,
+    {
+        let len = buf.get_u64_ne() as usize;
+
+        Self {
+            time_enabled: config
+                .read_format
+                .contains(ReadFormat::TOTAL_TIME_ENABLED)
+                .then(|| buf.get_u64_ne()),
+            time_running: config
+                .read_format
+                .contains(ReadFormat::TOTAL_TIME_RUNNING)
+                .then(|| buf.get_u64_ne()),
+            values: std::iter::repeat_with(|| GroupValueEntry::parse(config, buf))
+                .take(len)
+                .collect(),
+        }
+    }
+}
+
+impl Parse for GroupValueEntry {
+    fn parse<B: Buf>(config: &ParseConfig, buf: &mut B) -> Self
+    where
+        Self: Sized,
+    {
+        Self {
+            value: buf.get_u64_ne(),
+            id: config
+                .read_format
+                .contains(ReadFormat::ID)
+                .then(|| buf.get_u64_ne()),
+        }
+    }
+}
+
+impl Parse for ReadValue {
+    fn parse<B: Buf>(config: &ParseConfig, buf: &mut B) -> Self
+    where
+        Self: Sized,
+    {
+        if config.read_format.contains(ReadFormat::GROUP) {
+            Self::Group(GroupValue::parse(config, buf))
+        } else {
+            Self::Counter(CounterValue::parse(config, buf))
+        }
     }
 }
 
