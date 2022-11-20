@@ -200,22 +200,20 @@ enum_binding! {
     }
 }
 
-/// Indicates the CPU mode in which the sample was collected.
-///
-/// See the [manpage] for the documentation of what each value means.
-///
-/// [manpage]: http://man7.org/linux/man-pages/man2/perf_event_open.2.html
-#[derive(Copy, Clone, Eq, PartialEq, Hash, Default)]
-pub struct RecordCpuMode(pub u16);
-
-#[allow(missing_docs)]
-impl RecordCpuMode {
-    pub const UNKNOWN: Self = Self(bindings::PERF_RECORD_MISC_CPUMODE_UNKNOWN as _);
-    pub const KERNEL: Self = Self(bindings::PERF_RECORD_MISC_KERNEL as _);
-    pub const USER: Self = Self(bindings::PERF_RECORD_MISC_USER as _);
-    pub const HYPERVISOR: Self = Self(bindings::PERF_RECORD_MISC_HYPERVISOR as _);
-    pub const GUEST_KERNEL: Self = Self(bindings::PERF_RECORD_MISC_GUEST_KERNEL as _);
-    pub const GUEST_USER: Self = Self(bindings::PERF_RECORD_MISC_GUEST_USER as _);
+enum_binding! {
+    /// Indicates the CPU mode in which the sample was collected.
+    ///
+    /// See the [manpage] for the documentation of what each value means.
+    ///
+    /// [manpage]: http://man7.org/linux/man-pages/man2/perf_event_open.2.html
+    pub struct RecordCpuMode : u16 {
+        const UNKNOWN = bindings::PERF_RECORD_MISC_CPUMODE_UNKNOWN as _;
+        const KERNEL = bindings::PERF_RECORD_MISC_KERNEL as _;
+        const USER = bindings::PERF_RECORD_MISC_USER as _;
+        const HYPERVISOR = bindings::PERF_RECORD_MISC_HYPERVISOR as _;
+        const GUEST_KERNEL = bindings::PERF_RECORD_MISC_GUEST_KERNEL as _;
+        const GUEST_USER = bindings::PERF_RECORD_MISC_GUEST_USER as _;
+    }
 }
 
 /// An event emitted by the kernel.
@@ -515,22 +513,6 @@ impl From<&'_ perf_event_attr> for ParseConfig {
 impl From<perf_event_attr> for ParseConfig {
     fn from(attr: perf_event_attr) -> Self {
         Self::from(&attr)
-    }
-}
-
-impl fmt::Debug for RecordCpuMode {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        const NAME: &str = "RecordCpuMode";
-
-        match *self {
-            Self::UNKNOWN => write!(f, "{NAME}::UNKNOWN"),
-            Self::KERNEL => write!(f, "{NAME}::KERNEL"),
-            Self::USER => write!(f, "{NAME}::USER"),
-            Self::HYPERVISOR => write!(f, "{NAME}::HYPERVISOR"),
-            Self::GUEST_KERNEL => write!(f, "{NAME}::GUEST_KERNEL"),
-            Self::GUEST_USER => write!(f, "{NAME}::GUEST_USER"),
-            Self(value) => f.debug_tuple(NAME).field(&value).finish(),
-        }
     }
 }
 
