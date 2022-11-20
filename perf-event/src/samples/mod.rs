@@ -24,6 +24,7 @@ mod exit;
 mod fork;
 mod lost;
 mod mmap;
+mod sample;
 mod throttle;
 
 pub use self::bitflags_defs::{ReadFormat, RecordMiscFlags, SampleType};
@@ -32,6 +33,7 @@ pub use self::exit::Exit;
 pub use self::fork::Fork;
 pub use self::lost::Lost;
 pub use self::mmap::Mmap;
+pub use self::sample::*;
 pub use self::throttle::Throttle;
 
 // Need a module here to avoid the allow applying to everything.
@@ -192,6 +194,15 @@ impl RecordType {
     pub const TEXT_POKE: Self = Self(bindings::PERF_RECORD_TEXT_POKE);
 }
 
+enum_binding! {
+    /// ABI of the program when sampling registers.
+    pub struct SampleRegsAbi : u64 {
+        const NONE = bindings::PERF_SAMPLE_REGS_ABI_NONE as _;
+        const ABI_32 = bindings::PERF_SAMPLE_REGS_ABI_32 as _;
+        const ABI_64 = bindings::PERF_SAMPLE_REGS_ABI_64 as _;
+    }
+}
+
 /// Indicates the CPU mode in which the sample was collected.
 ///
 /// See the [manpage] for the documentation of what each value means.
@@ -296,6 +307,9 @@ pub enum RecordEvent {
     /// sample events after the counter was throttled.
     Unthrottle(Throttle),
 
+    /// Record containing data about a sample taken by the kernel.
+    Sample(Sample),
+
     /// An event was generated but `perf-event` was not able to parse it.
     ///
     /// Instead, the bytes making up the event are available here.
@@ -363,6 +377,8 @@ pub(crate) struct ParseConfig {
     sample_type: SampleType,
     read_format: ReadFormat,
     sample_id_all: bool,
+    regs_user: u64,
+    regs_intr: u64,
 }
 
 impl Record {
@@ -388,6 +404,7 @@ impl Record {
                 RecordEvent::Unthrottle(Throttle::parse(config, &mut limited))
             }
             RecordType::FORK => Fork::parse(config, &mut limited).into(),
+            RecordType::SAMPLE => Sample::parse(config, &mut limited).into(),
             _ => RecordEvent::Unknown(limited.parse_remainder()),
         };
 
@@ -402,6 +419,14 @@ impl Record {
                     pid: Some(mmap.pid),
                     tid: Some(mmap.tid),
                     ..Default::default()
+                },
+                RecordEvent::Sample(sample) => SampleId {
+                    pid: sample.pid,
+                    tid: sample.tid,
+                    time: sample.time,
+                    id: sample.id,
+                    stream_id: sample.stream_id,
+                    cpu: sample.cpu,
                 },
                 _ => SampleId::default(),
             },
@@ -484,6 +509,8 @@ impl From<&'_ perf_event_attr> for ParseConfig {
             sample_type: SampleType::new(attr.sample_type),
             read_format: ReadFormat::new(attr.read_format),
             sample_id_all: attr.sample_id_all() != 0,
+            regs_user: attr.sample_regs_user,
+            regs_intr: attr.sample_regs_intr,
         }
     }
 }
@@ -491,12 +518,6 @@ impl From<&'_ perf_event_attr> for ParseConfig {
 impl From<perf_event_attr> for ParseConfig {
     fn from(attr: perf_event_attr) -> Self {
         Self::from(&attr)
-    }
-}
-
-impl From<u32> for RecordType {
-    fn from(value: u32) -> Self {
-        Self(value)
     }
 }
 
@@ -527,12 +548,6 @@ impl fmt::Debug for RecordType {
             Self::TEXT_POKE => write!(f, "{NAME}::TEXT_POKE"),
             Self(value) => f.debug_tuple(NAME).field(&value).finish(),
         }
-    }
-}
-
-impl From<u16> for RecordCpuMode {
-    fn from(value: u16) -> Self {
-        Self(value)
     }
 }
 

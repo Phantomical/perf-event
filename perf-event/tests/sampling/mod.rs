@@ -16,6 +16,7 @@ mod exit;
 mod fork;
 mod lost;
 mod mmap;
+mod sample;
 
 #[derive(Copy, Clone, Eq, PartialEq)]
 struct Hex<T>(T);
