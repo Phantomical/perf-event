@@ -165,33 +165,30 @@ mod bitflags_defs {
     }
 }
 
-/// The type of the record as communicated by the kernel.
-#[derive(Copy, Clone, Eq, PartialEq, Hash, Default)]
-pub struct RecordType(pub u32);
-
-// Note: If you add a new value here make sure to also add it to the debug impl.
-#[allow(missing_docs)]
-impl RecordType {
-    pub const MMAP: Self = Self(bindings::PERF_RECORD_MMAP);
-    pub const LOST: Self = Self(bindings::PERF_RECORD_LOST);
-    pub const COMM: Self = Self(bindings::PERF_RECORD_COMM);
-    pub const EXIT: Self = Self(bindings::PERF_RECORD_EXIT);
-    pub const THROTTLE: Self = Self(bindings::PERF_RECORD_THROTTLE);
-    pub const UNTHROTTLE: Self = Self(bindings::PERF_RECORD_UNTHROTTLE);
-    pub const FORK: Self = Self(bindings::PERF_RECORD_FORK);
-    pub const READ: Self = Self(bindings::PERF_RECORD_READ);
-    pub const SAMPLE: Self = Self(bindings::PERF_RECORD_SAMPLE);
-    pub const MMAP2: Self = Self(bindings::PERF_RECORD_MMAP2);
-    pub const AUX: Self = Self(bindings::PERF_RECORD_AUX);
-    pub const ITRACE_START: Self = Self(bindings::PERF_RECORD_ITRACE_START);
-    pub const LOST_SAMPLES: Self = Self(bindings::PERF_RECORD_LOST_SAMPLES);
-    pub const SWITCH: Self = Self(bindings::PERF_RECORD_SWITCH);
-    pub const SWITCH_CPU_WIDE: Self = Self(bindings::PERF_RECORD_SWITCH_CPU_WIDE);
-    pub const NAMESPACES: Self = Self(bindings::PERF_RECORD_NAMESPACES);
-    pub const KSYMBOL: Self = Self(bindings::PERF_RECORD_KSYMBOL);
-    pub const BPF_EVENT: Self = Self(bindings::PERF_RECORD_BPF_EVENT);
-    pub const CGROUP: Self = Self(bindings::PERF_RECORD_CGROUP);
-    pub const TEXT_POKE: Self = Self(bindings::PERF_RECORD_TEXT_POKE);
+enum_binding! {
+    /// The type of the record as communicated by the kernel.
+    pub struct RecordType : u32 {
+        const MMAP = bindings::PERF_RECORD_MMAP;
+        const LOST = bindings::PERF_RECORD_LOST;
+        const COMM = bindings::PERF_RECORD_COMM;
+        const EXIT = bindings::PERF_RECORD_EXIT;
+        const THROTTLE = bindings::PERF_RECORD_THROTTLE;
+        const UNTHROTTLE = bindings::PERF_RECORD_UNTHROTTLE;
+        const FORK = bindings::PERF_RECORD_FORK;
+        const READ = bindings::PERF_RECORD_READ;
+        const SAMPLE = bindings::PERF_RECORD_SAMPLE;
+        const MMAP2 = bindings::PERF_RECORD_MMAP2;
+        const AUX = bindings::PERF_RECORD_AUX;
+        const ITRACE_START = bindings::PERF_RECORD_ITRACE_START;
+        const LOST_SAMPLES = bindings::PERF_RECORD_LOST_SAMPLES;
+        const SWITCH = bindings::PERF_RECORD_SWITCH;
+        const SWITCH_CPU_WIDE = bindings::PERF_RECORD_SWITCH_CPU_WIDE;
+        const NAMESPACES = bindings::PERF_RECORD_NAMESPACES;
+        const KSYMBOL = bindings::PERF_RECORD_KSYMBOL;
+        const BPF_EVENT = bindings::PERF_RECORD_BPF_EVENT;
+        const CGROUP = bindings::PERF_RECORD_CGROUP;
+        const TEXT_POKE = bindings::PERF_RECORD_TEXT_POKE;
+    }
 }
 
 enum_binding! {
@@ -518,36 +515,6 @@ impl From<&'_ perf_event_attr> for ParseConfig {
 impl From<perf_event_attr> for ParseConfig {
     fn from(attr: perf_event_attr) -> Self {
         Self::from(&attr)
-    }
-}
-
-impl fmt::Debug for RecordType {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        const NAME: &str = "RecordType";
-
-        match *self {
-            Self::MMAP => write!(f, "{NAME}::MMAP"),
-            Self::LOST => write!(f, "{NAME}::LOST"),
-            Self::COMM => write!(f, "{NAME}::COMM"),
-            Self::EXIT => write!(f, "{NAME}::EXIT"),
-            Self::THROTTLE => write!(f, "{NAME}::THROTTLE"),
-            Self::UNTHROTTLE => write!(f, "{NAME}::UNTHROTTLE"),
-            Self::FORK => write!(f, "{NAME}::FORK"),
-            Self::READ => write!(f, "{NAME}::READ"),
-            Self::SAMPLE => write!(f, "{NAME}::SAMPLE"),
-            Self::MMAP2 => write!(f, "{NAME}::MMAP2"),
-            Self::AUX => write!(f, "{NAME}::AUX"),
-            Self::ITRACE_START => write!(f, "{NAME}::ITRACE_START"),
-            Self::LOST_SAMPLES => write!(f, "{NAME}::LOST_SAMPLES"),
-            Self::SWITCH => write!(f, "{NAME}::SWITCH"),
-            Self::SWITCH_CPU_WIDE => write!(f, "{NAME}::SWITCH_CPU_WIDE"),
-            Self::NAMESPACES => write!(f, "{NAME}::NAMESPACES"),
-            Self::KSYMBOL => write!(f, "{NAME}::KSYMBOL"),
-            Self::BPF_EVENT => write!(f, "{NAME}::BPF_EVENT"),
-            Self::CGROUP => write!(f, "{NAME}::CGROUP"),
-            Self::TEXT_POKE => write!(f, "{NAME}::TEXT_POKE"),
-            Self(value) => f.debug_tuple(NAME).field(&value).finish(),
-        }
     }
 }
 
