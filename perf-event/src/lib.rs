@@ -594,6 +594,17 @@ impl<'a> Builder<'a> {
         self
     }
 
+    /// Save event counts on context switch for inherited tasks.
+    ///
+    /// This counter is only meaningful if [`inherit`] has been enabled as
+    /// well.
+    ///
+    /// [`inherit`]: Self::inherit
+    pub fn inherit_stat(mut self, inherit_stat: bool) -> Self {
+        self.attrs.set_inherit_stat(inherit_stat.into());
+        self
+    }
+
     /// If set, the counter is automatically enabled after a call to
     /// [`execve(2)`].
     ///
