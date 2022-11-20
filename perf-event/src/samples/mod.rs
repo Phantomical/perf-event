@@ -24,6 +24,7 @@ mod exit;
 mod fork;
 mod lost;
 mod mmap;
+mod read;
 mod sample;
 mod throttle;
 
@@ -33,6 +34,7 @@ pub use self::exit::Exit;
 pub use self::fork::Fork;
 pub use self::lost::Lost;
 pub use self::mmap::Mmap;
+pub use self::read::Read;
 pub use self::sample::*;
 pub use self::throttle::Throttle;
 
@@ -302,6 +304,9 @@ pub enum RecordEvent {
     /// sample events after the counter was throttled.
     Unthrottle(Throttle),
 
+    /// Record indicating a read event.
+    Read(Read),
+
     /// Record containing data about a sample taken by the kernel.
     Sample(Sample),
 
@@ -399,6 +404,7 @@ impl Record {
                 RecordEvent::Unthrottle(Throttle::parse(config, &mut limited))
             }
             RecordType::FORK => Fork::parse(config, &mut limited).into(),
+            RecordType::READ => Read::parse(config, &mut limited).into(),
             RecordType::SAMPLE => Sample::parse(config, &mut limited).into(),
             _ => RecordEvent::Unknown(limited.parse_remainder()),
         };
