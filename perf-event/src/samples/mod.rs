@@ -710,9 +710,25 @@ pub(crate) trait ParseBuf: Buf {
         bytes
     }
 
+    /// Parse a type by copying its bytes out of the buffer and transmuting
+    /// to the desired type.
+    ///
+    /// # Safety
+    /// It must be valid to transmute T from any arbitrary set of initialized
+    /// bytes.
+    unsafe fn parse_transmute<T: Copy>(&mut self) -> T {
+        use std::mem::MaybeUninit;
+        use std::slice::from_raw_parts_mut;
+
+        let mut value = MaybeUninit::<T>::zeroed();
+        let slice = from_raw_parts_mut(value.as_mut_ptr() as *mut u8, std::mem::size_of::<T>());
+        self.copy_to_slice(slice);
+
+        value.assume_init()
+    }
+
     fn parse_header(&mut self) -> bindings::perf_event_header {
-        let bytes = self.parse_bytes::<{ std::mem::size_of::<perf_event_header>() }>();
-        unsafe { std::mem::transmute(bytes) }
+        unsafe { self.parse_transmute() }
     }
 }
 
