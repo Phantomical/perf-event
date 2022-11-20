@@ -787,6 +787,25 @@ impl<'a> Builder<'a> {
         self
     }
 
+    /// Set the maximum number of frames gathered when
+    /// [`SampleType::CALLCHAIN`] is specified.
+    ///
+    /// Calling this method will implicitly enable callchain collection within
+    /// the generated samples. Also note that the kernel will never collect
+    /// more frames than are specified in
+    /// `/proc/sys/kernel/perf_event_max_stack` no matter what is set here.
+    /// By default, the kernel will collect up to the value specified in
+    /// `/proc/sys/kernel/perf_event_max_stack`.
+    ///
+    /// This option is only available in Linux 4.8 and later.
+    ///
+    /// [`SampleType::CALLCHAIN`]: crate::samples::SampleType::CALLCHAIN
+    /// [`sample`]: Self::sample
+    pub fn sample_max_stack(mut self, frames: u16) -> Self {
+        self.attrs.sample_max_stack = frames;
+        self
+    }
+
     /// Enable the generation of [`Mmap`] records.
     ///
     /// [`Mmap`] records are emitted when the process/thread that is being
