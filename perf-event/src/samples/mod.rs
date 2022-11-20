@@ -16,6 +16,9 @@ use bytes::Buf;
 use perf_event_open_sys::bindings::{self, perf_event_attr, perf_event_header};
 use std::fmt;
 
+#[macro_use]
+mod macros;
+
 mod comm;
 mod exit;
 mod fork;
