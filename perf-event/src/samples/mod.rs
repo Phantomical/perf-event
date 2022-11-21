@@ -24,6 +24,7 @@ mod comm;
 mod exit;
 mod fork;
 mod itrace_start;
+mod ksymbol;
 mod lost;
 mod lost_samples;
 mod mmap;
@@ -40,6 +41,7 @@ pub use self::comm::Comm;
 pub use self::exit::Exit;
 pub use self::fork::Fork;
 pub use self::itrace_start::ITraceStart;
+pub use self::ksymbol::{KSymbol, KSymbolFlags, KSymbolType};
 pub use self::lost::Lost;
 pub use self::lost_samples::LostSamples;
 pub use self::mmap::Mmap;
@@ -350,6 +352,9 @@ pub enum RecordEvent {
     /// Record containing namespace information about a process.
     Namespaces(Namespaces),
 
+    /// Record for when a kernel symbol is being registered or unregistered.
+    KSymbol(KSymbol),
+
     /// An event was generated but `perf-event` was not able to parse it.
     ///
     /// Instead, the bytes making up the event are available here.
@@ -455,6 +460,7 @@ impl Record {
                 SwitchCpuWide::parse(RecordMiscFlags::new(header.misc), &mut limited).into()
             }
             RecordType::NAMESPACES => Namespaces::parse(config, &mut limited).into(),
+            RecordType::KSYMBOL => KSymbol::parse(config, &mut limited).into(),
             _ => RecordEvent::Unknown(limited.parse_remainder()),
         };
 
