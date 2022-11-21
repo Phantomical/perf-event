@@ -844,6 +844,20 @@ impl<'a> Builder<'a> {
         self
     }
 
+    /// Enable the generation of MMAP records for non-`PROC_EXEC` mappings.
+    ///
+    /// Depending on other flags, this will cause either [`Mmap`] or [`Mmap2`]
+    /// records to be generated when a call to [`mmap(2)`] is made that does
+    /// not have `PROT_EXEC` set.
+    ///
+    /// [`Mmap2`]: crate::samples::Mmap2
+    /// [`Mmap`]: crate::samples::Mmap
+    /// [`mmap(2)`]: https://man7.org/linux/man-pages/man2/mmap.2.html
+    pub fn mmap_data(mut self, mmap_data: bool) -> Self {
+        self.attrs.set_mmap_data(mmap_data.into());
+        self
+    }
+
     /// Enable the generation of [`Comm`] records.
     ///
     /// [`Comm`] records are emitted when a process/thread changes its name.
