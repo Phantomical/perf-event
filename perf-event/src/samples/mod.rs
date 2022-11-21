@@ -24,6 +24,7 @@ mod exit;
 mod fork;
 mod lost;
 mod mmap;
+mod mmap2;
 mod read;
 mod sample;
 mod throttle;
@@ -34,6 +35,7 @@ pub use self::exit::Exit;
 pub use self::fork::Fork;
 pub use self::lost::Lost;
 pub use self::mmap::Mmap;
+pub use self::mmap2::Mmap2;
 pub use self::read::Read;
 pub use self::sample::*;
 pub use self::throttle::Throttle;
@@ -310,6 +312,9 @@ pub enum RecordEvent {
     /// Record containing data about a sample taken by the kernel.
     Sample(Sample),
 
+    /// Record a new memory map with extended info.
+    Mmap2(Mmap2),
+
     /// An event was generated but `perf-event` was not able to parse it.
     ///
     /// Instead, the bytes making up the event are available here.
@@ -406,6 +411,7 @@ impl Record {
             RecordType::FORK => Fork::parse(config, &mut limited).into(),
             RecordType::READ => Read::parse(config, &mut limited).into(),
             RecordType::SAMPLE => Sample::parse(config, &mut limited).into(),
+            RecordType::MMAP2 => Mmap2::parse(config, &mut limited).into(),
             _ => RecordEvent::Unknown(limited.parse_remainder()),
         };
 
