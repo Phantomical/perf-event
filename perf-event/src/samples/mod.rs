@@ -25,6 +25,7 @@ mod exit;
 mod fork;
 mod itrace_start;
 mod lost;
+mod lost_samples;
 mod mmap;
 mod mmap2;
 mod read;
@@ -38,6 +39,7 @@ pub use self::exit::Exit;
 pub use self::fork::Fork;
 pub use self::itrace_start::ITraceStart;
 pub use self::lost::Lost;
+pub use self::lost_samples::LostSamples;
 pub use self::mmap::Mmap;
 pub use self::mmap2::Mmap2;
 pub use self::read::Read;
@@ -325,6 +327,10 @@ pub enum RecordEvent {
     /// Record indicating that a process has started an instruction trace.
     ITraceStart(ITraceStart),
 
+    /// Record indicating that some samples were lost while using hardware
+    /// sampling.
+    LostSamples(LostSamples),
+
     /// An event was generated but `perf-event` was not able to parse it.
     ///
     /// Instead, the bytes making up the event are available here.
@@ -424,6 +430,7 @@ impl Record {
             RecordType::MMAP2 => Mmap2::parse(config, &mut limited).into(),
             RecordType::AUX => Aux::parse(config, &mut limited).into(),
             RecordType::ITRACE_START => ITraceStart::parse(config, &mut limited).into(),
+            RecordType::LOST_SAMPLES => LostSamples::parse(config, &mut limited).into(),
             _ => RecordEvent::Unknown(limited.parse_remainder()),
         };
 
