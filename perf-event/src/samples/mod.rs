@@ -23,6 +23,7 @@ mod aux;
 mod comm;
 mod exit;
 mod fork;
+mod itrace_start;
 mod lost;
 mod mmap;
 mod mmap2;
@@ -35,6 +36,7 @@ pub use self::bitflags_defs::{ReadFormat, RecordMiscFlags, SampleType};
 pub use self::comm::Comm;
 pub use self::exit::Exit;
 pub use self::fork::Fork;
+pub use self::itrace_start::ITraceStart;
 pub use self::lost::Lost;
 pub use self::mmap::Mmap;
 pub use self::mmap2::Mmap2;
@@ -320,6 +322,9 @@ pub enum RecordEvent {
     /// Record indicating that there is new data in the aux buffer.
     Aux(Aux),
 
+    /// Record indicating that a process has started an instruction trace.
+    ITraceStart(ITraceStart),
+
     /// An event was generated but `perf-event` was not able to parse it.
     ///
     /// Instead, the bytes making up the event are available here.
@@ -418,6 +423,7 @@ impl Record {
             RecordType::SAMPLE => Sample::parse(config, &mut limited).into(),
             RecordType::MMAP2 => Mmap2::parse(config, &mut limited).into(),
             RecordType::AUX => Aux::parse(config, &mut limited).into(),
+            RecordType::ITRACE_START => ITraceStart::parse(config, &mut limited).into(),
             _ => RecordEvent::Unknown(limited.parse_remainder()),
         };
 
