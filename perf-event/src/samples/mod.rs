@@ -28,6 +28,7 @@ mod lost;
 mod lost_samples;
 mod mmap;
 mod mmap2;
+mod namespaces;
 mod read;
 mod sample;
 mod switch_cpu_wide;
@@ -43,6 +44,7 @@ pub use self::lost::Lost;
 pub use self::lost_samples::LostSamples;
 pub use self::mmap::Mmap;
 pub use self::mmap2::Mmap2;
+pub use self::namespaces::{NamespaceEntry, Namespaces};
 pub use self::read::Read;
 pub use self::sample::*;
 pub use self::switch_cpu_wide::SwitchCpuWide;
@@ -345,6 +347,9 @@ pub enum RecordEvent {
     /// [`Switch`](Self::Switch) record.
     SwitchCpuWide(SwitchCpuWide),
 
+    /// Record containing namespace information about a process.
+    Namespaces(Namespaces),
+
     /// An event was generated but `perf-event` was not able to parse it.
     ///
     /// Instead, the bytes making up the event are available here.
@@ -449,6 +454,7 @@ impl Record {
             RecordType::SWITCH_CPU_WIDE => {
                 SwitchCpuWide::parse(RecordMiscFlags::new(header.misc), &mut limited).into()
             }
+            RecordType::NAMESPACES => Namespaces::parse(config, &mut limited).into(),
             _ => RecordEvent::Unknown(limited.parse_remainder()),
         };
 
