@@ -30,6 +30,7 @@ mod mmap;
 mod mmap2;
 mod read;
 mod sample;
+mod switch_cpu_wide;
 mod throttle;
 
 pub use self::aux::{Aux, AuxFlags};
@@ -44,6 +45,7 @@ pub use self::mmap::Mmap;
 pub use self::mmap2::Mmap2;
 pub use self::read::Read;
 pub use self::sample::*;
+pub use self::switch_cpu_wide::SwitchCpuWide;
 pub use self::throttle::Throttle;
 
 // Need a module here to avoid the allow applying to everything.
@@ -337,6 +339,12 @@ pub enum RecordEvent {
     /// to a context into the current process or away from it.
     Switch,
 
+    /// Record for a context switch in cpu-wide mode.
+    ///
+    /// This includes some additional information not contained in the regular
+    /// [`Switch`](Self::Switch) record.
+    SwitchCpuWide(SwitchCpuWide),
+
     /// An event was generated but `perf-event` was not able to parse it.
     ///
     /// Instead, the bytes making up the event are available here.
@@ -438,6 +446,9 @@ impl Record {
             RecordType::ITRACE_START => ITraceStart::parse(config, &mut limited).into(),
             RecordType::LOST_SAMPLES => LostSamples::parse(config, &mut limited).into(),
             RecordType::SWITCH => RecordEvent::Switch,
+            RecordType::SWITCH_CPU_WIDE => {
+                SwitchCpuWide::parse(RecordMiscFlags::new(header.misc), &mut limited).into()
+            }
             _ => RecordEvent::Unknown(limited.parse_remainder()),
         };
 
