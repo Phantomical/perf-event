@@ -904,6 +904,24 @@ impl<'a> Builder<'a> {
         self
     }
 
+    /// Enable the generation of [`Switch`] or [`SwitchCpuWide`] records.
+    ///
+    /// The specific record type that will be generated depends on whether the
+    /// [`Sampler`] is configured to record over a CPU or over a set of
+    /// processes instead. Note that you can use [`sample_id_all`] to replicate
+    /// [`SwitchCpuWide`] even when not sampling in cpu-wide mode.
+    ///
+    /// Note that this method will work even with strict `perf_event_paranoid`
+    /// settings whereas other methods of gathering this info may not.
+    ///
+    /// [`Switch`]: crate::samples::RecordEvent::Switch
+    /// [`SwitchCpuWide`]: crate::samples::SwitchCpuWide
+    /// [`sample_id_all`]: Self::sample_id_all
+    pub fn context_switch(mut self, enable: bool) -> Self {
+        self.attrs.set_context_switch(enable.into());
+        self
+    }
+
     /// Set how many bytes will be written before the kernel sends an overflow
     /// notification.
     ///
