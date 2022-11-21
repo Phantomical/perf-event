@@ -21,6 +21,7 @@ mod macros;
 
 mod aux;
 mod bpf_event;
+mod cgroup;
 mod comm;
 mod exit;
 mod fork;
@@ -39,6 +40,7 @@ mod throttle;
 pub use self::aux::{Aux, AuxFlags};
 pub use self::bitflags_defs::{ReadFormat, RecordMiscFlags, SampleType};
 pub use self::bpf_event::{BpfEvent, BpfEventType};
+pub use self::cgroup::Cgroup;
 pub use self::comm::Comm;
 pub use self::exit::Exit;
 pub use self::fork::Fork;
@@ -360,6 +362,9 @@ pub enum RecordEvent {
     /// Record for when a BPF program is loaded or unloaded.
     BpfEvent(BpfEvent),
 
+    /// Record for when a new cgroup is created and activated.
+    Cgroup(Cgroup),
+
     /// An event was generated but `perf-event` was not able to parse it.
     ///
     /// Instead, the bytes making up the event are available here.
@@ -467,6 +472,7 @@ impl Record {
             RecordType::NAMESPACES => Namespaces::parse(config, &mut limited).into(),
             RecordType::KSYMBOL => KSymbol::parse(config, &mut limited).into(),
             RecordType::BPF_EVENT => BpfEvent::parse(config, &mut limited).into(),
+            RecordType::CGROUP => Cgroup::parse(config, &mut limited).into(),
             _ => RecordEvent::Unknown(limited.parse_remainder()),
         };
 
