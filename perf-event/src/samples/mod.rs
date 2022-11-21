@@ -19,6 +19,7 @@ use std::fmt;
 #[macro_use]
 mod macros;
 
+mod aux;
 mod comm;
 mod exit;
 mod fork;
@@ -29,6 +30,7 @@ mod read;
 mod sample;
 mod throttle;
 
+pub use self::aux::{Aux, AuxFlags};
 pub use self::bitflags_defs::{ReadFormat, RecordMiscFlags, SampleType};
 pub use self::comm::Comm;
 pub use self::exit::Exit;
@@ -315,6 +317,9 @@ pub enum RecordEvent {
     /// Record a new memory map with extended info.
     Mmap2(Mmap2),
 
+    /// Record indicating that there is new data in the aux buffer.
+    Aux(Aux),
+
     /// An event was generated but `perf-event` was not able to parse it.
     ///
     /// Instead, the bytes making up the event are available here.
@@ -412,6 +417,7 @@ impl Record {
             RecordType::READ => Read::parse(config, &mut limited).into(),
             RecordType::SAMPLE => Sample::parse(config, &mut limited).into(),
             RecordType::MMAP2 => Mmap2::parse(config, &mut limited).into(),
+            RecordType::AUX => Aux::parse(config, &mut limited).into(),
             _ => RecordEvent::Unknown(limited.parse_remainder()),
         };
 
