@@ -828,6 +828,22 @@ impl<'a> Builder<'a> {
         self
     }
 
+    /// Enable the generation of extended [`Mmap2`] records.
+    ///
+    /// [`Mmap2`] records are extended versions of [`Mmap`] records which
+    /// contain enough info to uniquely identify any given memory mapping.
+    /// This option implies the [`mmap`] option and, if enabled, all [`Mmap`]
+    /// records will be replaced by [`Mmap2`] records.
+    ///
+    /// [`Mmap2`]: crate::samples::Mmap2
+    /// [`Mmap`]: crate::samples::Mmap
+    /// [`mmap`]: Self::mmap
+    pub fn mmap2(mut self, mmap2: bool) -> Self {
+        self.attrs.set_mmap2(mmap2.into());
+        self.attrs.set_mmap(mmap2.into());
+        self
+    }
+
     /// Enable the generation of [`Comm`] records.
     ///
     /// [`Comm`] records are emitted when a process/thread changes its name.
