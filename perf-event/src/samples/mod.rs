@@ -331,6 +331,12 @@ pub enum RecordEvent {
     /// sampling.
     LostSamples(LostSamples),
 
+    /// Record that a context switch occurred.
+    ///
+    /// The [`RecordMiscFlags::SWITCH_OUT`] flag indicates whether this was due
+    /// to a context into the current process or away from it.
+    Switch,
+
     /// An event was generated but `perf-event` was not able to parse it.
     ///
     /// Instead, the bytes making up the event are available here.
@@ -431,6 +437,7 @@ impl Record {
             RecordType::AUX => Aux::parse(config, &mut limited).into(),
             RecordType::ITRACE_START => ITraceStart::parse(config, &mut limited).into(),
             RecordType::LOST_SAMPLES => LostSamples::parse(config, &mut limited).into(),
+            RecordType::SWITCH => RecordEvent::Switch,
             _ => RecordEvent::Unknown(limited.parse_remainder()),
         };
 
