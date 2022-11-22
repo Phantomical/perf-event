@@ -35,6 +35,7 @@ mod namespaces;
 mod read;
 mod sample;
 mod switch_cpu_wide;
+mod text_poke;
 mod throttle;
 
 pub use self::aux::{Aux, AuxFlags};
@@ -54,6 +55,7 @@ pub use self::namespaces::{NamespaceEntry, Namespaces};
 pub use self::read::Read;
 pub use self::sample::*;
 pub use self::switch_cpu_wide::SwitchCpuWide;
+pub use self::text_poke::TextPoke;
 pub use self::throttle::Throttle;
 
 // Need a module here to avoid the allow applying to everything.
@@ -365,6 +367,9 @@ pub enum RecordEvent {
     /// Record for when a new cgroup is created and activated.
     Cgroup(Cgroup),
 
+    /// Record for when kernel text is modified.
+    TextPoke(TextPoke),
+
     /// An event was generated but `perf-event` was not able to parse it.
     ///
     /// Instead, the bytes making up the event are available here.
@@ -473,6 +478,7 @@ impl Record {
             RecordType::KSYMBOL => KSymbol::parse(config, &mut limited).into(),
             RecordType::BPF_EVENT => BpfEvent::parse(config, &mut limited).into(),
             RecordType::CGROUP => Cgroup::parse(config, &mut limited).into(),
+            RecordType::TEXT_POKE => TextPoke::parse(config, &mut limited).into(),
             _ => RecordEvent::Unknown(limited.parse_remainder()),
         };
 
