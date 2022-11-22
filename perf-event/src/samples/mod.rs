@@ -20,6 +20,7 @@ use std::fmt;
 mod macros;
 
 mod aux;
+mod aux_output_hw_id;
 mod bpf_event;
 mod cgroup;
 mod comm;
@@ -39,6 +40,7 @@ mod text_poke;
 mod throttle;
 
 pub use self::aux::{Aux, AuxFlags};
+pub use self::aux_output_hw_id::AuxOutputHwId;
 pub use self::bitflags_defs::{ReadFormat, RecordMiscFlags, SampleType};
 pub use self::bpf_event::{BpfEvent, BpfEventType};
 pub use self::cgroup::Cgroup;
@@ -210,6 +212,7 @@ enum_binding! {
         const BPF_EVENT = bindings::PERF_RECORD_BPF_EVENT;
         const CGROUP = bindings::PERF_RECORD_CGROUP;
         const TEXT_POKE = bindings::PERF_RECORD_TEXT_POKE;
+        const AUX_OUTPUT_HW_ID = bindings::PERF_RECORD_AUX_OUTPUT_HW_ID;
     }
 }
 
@@ -370,6 +373,10 @@ pub enum RecordEvent {
     /// Record for when kernel text is modified.
     TextPoke(TextPoke),
 
+    /// Record for correlating harware counter events emitted in aux data to
+    /// the counter stream.
+    AuxOutputHwId(AuxOutputHwId),
+
     /// An event was generated but `perf-event` was not able to parse it.
     ///
     /// Instead, the bytes making up the event are available here.
@@ -479,6 +486,7 @@ impl Record {
             RecordType::BPF_EVENT => BpfEvent::parse(config, &mut limited).into(),
             RecordType::CGROUP => Cgroup::parse(config, &mut limited).into(),
             RecordType::TEXT_POKE => TextPoke::parse(config, &mut limited).into(),
+            RecordType::AUX_OUTPUT_HW_ID => AuxOutputHwId::parse(config, &mut limited).into(),
             _ => RecordEvent::Unknown(limited.parse_remainder()),
         };
 
