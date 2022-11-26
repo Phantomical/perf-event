@@ -76,6 +76,7 @@ use crate::samples::SampleType;
 use events::Event;
 use libc::pid_t;
 use perf_event_open_sys::bindings::perf_event_attr;
+use samples::ClockId;
 use std::fs::File;
 use std::io::{self, Read};
 use std::mem::ManuallyDrop;
@@ -919,6 +920,34 @@ impl<'a> Builder<'a> {
     /// [`sample_id_all`]: Self::sample_id_all
     pub fn context_switch(mut self, enable: bool) -> Self {
         self.attrs.set_context_switch(enable.into());
+        self
+    }
+
+    /// Configure which internal linux time to use to generate timestamps in
+    /// samples.
+    ///
+    /// By default, the kernel will use either the hardware clock or, if that
+    /// is not available then the current jiffies value. Passing `None` into
+    /// this function will request the default clock.
+    ///
+    /// Note that the default clock cannot be compared across cores. If you
+    /// want to correlate sample times against external clocks then you will
+    /// need to explicitly select the clock used here. Linux supports many
+    /// different clocks but only some of them are supported within a sampler.
+    /// The currently supported ones are available in [`ClockId`].
+    ///
+    /// The specific clock used by [`SystemTime`] is currently the realtime
+    /// clock but this is not guaranteed by the standard library. If you want
+    /// to be sure that you are using the right clock, call [`clock_gettime`]
+    /// yourself.
+    ///
+    /// [`SystemTime`]: std::time::SystemTime
+    /// [`clock_gettime`]: https://man7.org/linux/man-pages/man3/clock_gettime.3.html
+    pub fn clockid(mut self, clock: impl Into<Option<ClockId>>) -> Self {
+        let clock = clock.into();
+
+        self.attrs.set_use_clockid(clock.is_some().into());
+        self.attrs.clockid = clock.map(|x| x.0).unwrap_or(0);
         self
     }
 

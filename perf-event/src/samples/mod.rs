@@ -241,6 +241,23 @@ enum_binding! {
     }
 }
 
+enum_binding! {
+    /// Clock ID for the kernel to use when generating `time` values in samples.
+    ///
+    /// This enum only contains the subset of the valid linux clocks that are
+    /// valid for use with `perf_event_open`. To see the full list check out
+    /// the [manpage].
+    ///
+    /// [manpage]: http://man7.org/linux/man-pages/man2/perf_event_open.2.html
+    pub struct ClockId : i32 {
+        const CLOCK_TAI = libc::CLOCK_TAI;
+        const CLOCK_BOOTTIME = libc::CLOCK_BOOTTIME;
+        const CLOCK_REALTIME = libc::CLOCK_REALTIME;
+        const CLOCK_MONOTONIC = libc::CLOCK_MONOTONIC;
+        const CLOCK_MONOTONIC_RAW = libc::CLOCK_MONOTONIC_RAW;
+    }
+}
+
 /// An event emitted by the kernel.
 #[derive(Clone, Debug)]
 #[non_exhaustive]
