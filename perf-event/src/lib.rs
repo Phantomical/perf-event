@@ -76,7 +76,7 @@ use crate::samples::SampleType;
 use events::Event;
 use libc::pid_t;
 use perf_event_open_sys::bindings::perf_event_attr;
-use samples::ClockId;
+use samples::{BranchSampleType, ClockId};
 use std::fs::File;
 use std::io::{self, Read};
 use std::mem::ManuallyDrop;
@@ -815,6 +815,23 @@ impl<'a> Builder<'a> {
     /// [`sample`]: Self::sample
     pub fn sample_max_stack(mut self, frames: u16) -> Self {
         self.attrs.sample_max_stack = frames;
+        self
+    }
+
+    /// Specify what branches to include in the branch record when
+    /// [`SampleType::BRANCH_STACK`] is specified.
+    ///
+    /// Calling this method will implicitly enable branch stack sampling.
+    /// See the documentation for [`BranchSampleType`] for explanations of what
+    /// the individual bits mean. Alternatively, read the [manpage] for the
+    /// authoritative documentation.
+    ///
+    /// This option is only supported on Linux 3.4 and later.
+    ///
+    /// [`SampleType::BRANCH_STACK`]: crate::samples::SampleType::BRANCH_STACK
+    /// [manpage]: https://man7.org/linux/man-pages/man2/perf_event_open.2.html
+    pub fn branch_sample_type(mut self, bst: BranchSampleType) -> Self {
+        self.attrs.branch_sample_type = bst.bits();
         self
     }
 

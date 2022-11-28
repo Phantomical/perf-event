@@ -41,7 +41,7 @@ mod throttle;
 
 pub use self::aux::{Aux, AuxFlags};
 pub use self::aux_output_hw_id::AuxOutputHwId;
-pub use self::bitflags_defs::{ReadFormat, RecordMiscFlags, SampleType};
+pub use self::bitflags_defs::*;
 pub use self::bpf_event::{BpfEvent, BpfEventType};
 pub use self::cgroup::Cgroup;
 pub use self::comm::Comm;
@@ -167,6 +167,52 @@ mod bitflags_defs {
         }
     }
 
+    bitflags! {
+        /// Specifies what to include in the branch record.
+        ///
+        /// The first part of this bitfield is the priviledge level. It can be
+        /// any combination of `USER`, `KERNEL`, or `HV`, (`PLM_ALL` is all
+        /// three). If none are specified, then the kernel will use the
+        /// priviledge level of the event. The remaining bits specify which
+        /// types of branches to sample or what data to include in the sample.
+        ///
+        /// See the [manpage] for documentation on what each flag means. In
+        /// some cases flags are not yet documented in the manpage and the only
+        /// documentation is then comments in the [source].
+        ///
+        /// [manpage]: http://man7.org/linux/man-pages/man2/perf_event_open.2.html
+        /// [source]: https://sourcegraph.com/github.com/torvalds/linux@b7b275e60bcd5f89771e865a8239325f86d9927d/-/blob/tools/include/uapi/linux/perf_event.h?L180
+        #[derive(Default)]
+        pub struct BranchSampleType : u64 {
+            const USER = bindings::PERF_SAMPLE_BRANCH_USER as _;
+            const KERNEL = bindings::PERF_SAMPLE_BRANCH_KERNEL as _;
+            const HV = bindings::PERF_SAMPLE_BRANCH_HV as _;
+
+            const ANY = bindings::PERF_SAMPLE_BRANCH_ANY as _;
+            const ANY_CALL = bindings::PERF_SAMPLE_BRANCH_ANY_CALL as _;
+            const ANY_RETURN = bindings::PERF_SAMPLE_BRANCH_ANY_RETURN as _;
+            const IND_CALL = bindings::PERF_SAMPLE_BRANCH_IND_CALL as _;
+            const ABORT_TX = bindings::PERF_SAMPLE_BRANCH_ABORT_TX as _;
+            const IN_TX = bindings::PERF_SAMPLE_BRANCH_IN_TX as _;
+            const NO_TX = bindings::PERF_SAMPLE_BRANCH_NO_TX as _;
+            const COND = bindings::PERF_SAMPLE_BRANCH_COND as _;
+            const CALL_STACK = bindings::PERF_SAMPLE_BRANCH_CALL_STACK as _;
+            const IND_JUMP = bindings::PERF_SAMPLE_BRANCH_IND_JUMP as _;
+            const CALL = bindings::PERF_SAMPLE_BRANCH_CALL as _;
+            const NO_FLAGS = bindings::PERF_SAMPLE_BRANCH_NO_FLAGS as _;
+            const NO_CYCLES = bindings::PERF_SAMPLE_BRANCH_NO_CYCLES as _;
+            const TYPE_SAVE = bindings::PERF_SAMPLE_BRANCH_TYPE_SAVE as _;
+            const HW_INDEX = bindings::PERF_SAMPLE_BRANCH_HW_INDEX as _;
+
+            // New flags will likely be added to the perf_event_open interface in
+            // the future. In that case we would like to avoid deleting those flags.
+            // This field will ensure that the bitflags crate does not truncate any
+            // flags when we construct a BranchSampleType instance.
+            #[doc(hidden)]
+            const _ALLOW_ALL_FLAGS = u64::MAX;
+        }
+    }
+
     impl SampleType {
         /// Create a sample from the underlying bits.
         pub const fn new(bits: u64) -> Self {
@@ -174,8 +220,8 @@ mod bitflags_defs {
         }
     }
 
-    /// Create a new read format from the underlying bits.
     impl ReadFormat {
+        /// Create a new read format from the underlying bits.
         pub const fn new(bits: u64) -> Self {
             Self { bits }
         }
@@ -184,6 +230,16 @@ mod bitflags_defs {
     impl RecordMiscFlags {
         /// Create a set of flags from the underlying bits.
         pub const fn new(bits: u16) -> Self {
+            Self { bits }
+        }
+    }
+
+    impl BranchSampleType {
+        /// A convenience value that is `USER | KERNEL | HV`.
+        pub const PLM_ALL: Self = Self::USER.union(Self::KERNEL).union(Self::HV);
+
+        /// Create a set of flags from the underlying bits.
+        pub const fn new(bits: u64) -> Self {
             Self { bits }
         }
     }
@@ -460,6 +516,7 @@ pub enum ReadValue {
 pub(crate) struct ParseConfig {
     sample_type: SampleType,
     read_format: ReadFormat,
+    branch_sample_type: BranchSampleType,
     sample_id_all: bool,
     regs_user: u64,
     regs_intr: u64,
@@ -607,6 +664,7 @@ impl From<&'_ perf_event_attr> for ParseConfig {
         Self {
             sample_type: SampleType::new(attr.sample_type),
             read_format: ReadFormat::new(attr.read_format),
+            branch_sample_type: BranchSampleType::new(attr.branch_sample_type),
             sample_id_all: attr.sample_id_all() != 0,
             regs_user: attr.sample_regs_user,
             regs_intr: attr.sample_regs_intr,

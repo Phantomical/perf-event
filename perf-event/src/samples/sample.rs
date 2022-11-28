@@ -4,7 +4,10 @@ use bitflags::bitflags;
 use bytes::Buf;
 use perf_event_open_sys::bindings::{self, perf_branch_entry};
 
-use super::{Parse, ParseBuf, ParseConfig, ReadValue, RecordEvent, SampleRegsAbi, SampleType};
+use super::{
+    BranchSampleType, Parse, ParseBuf, ParseConfig, ReadValue, RecordEvent, SampleRegsAbi,
+    SampleType,
+};
 
 pub use self::bitflag_defs::*;
 
@@ -30,6 +33,7 @@ pub struct Sample {
     pub value: Option<ReadValue>,
     pub callchain: Option<Vec<u64>>,
     pub raw: Option<Vec<u8>>,
+    pub lbr_hw_index: Option<u64>,
     pub lbr: Option<Vec<BranchEntry>>,
     pub regs_user: Option<Registers>,
     pub stack_user: Option<Vec<u8>>,
@@ -421,12 +425,19 @@ impl Parse for Sample {
             let len = buf.get_u64_ne() as usize;
             buf.parse_vec(len)
         });
-        let lbr = sty.contains(SampleType::BRANCH_STACK).then(|| {
+        let (lbr, lbr_hw_index) = if sty.contains(SampleType::BRANCH_STACK) {
             let len = buf.get_u64_ne() as usize;
-            std::iter::repeat_with(|| BranchEntry::parse(config, buf))
+            let hw_index = config
+                .branch_sample_type
+                .contains(BranchSampleType::HW_INDEX)
+                .then(|| buf.get_u64_ne());
+            let lbr = std::iter::repeat_with(|| BranchEntry::parse(config, buf))
                 .take(len)
-                .collect()
-        });
+                .collect();
+            (Some(lbr), hw_index)
+        } else {
+            (None, None)
+        };
         let regs_user = sty
             .contains(SampleType::REGS_USER)
             .then(|| Registers::parse_regs(config.regs_user, buf));
@@ -481,6 +492,7 @@ impl Parse for Sample {
             callchain,
             raw,
             lbr,
+            lbr_hw_index,
             regs_user,
             stack_user,
             weight,
@@ -547,6 +559,7 @@ impl fmt::Debug for Sample {
             callchain,
             raw,
             lbr,
+            lbr_hw_index,
             regs_user,
             stack_user,
             weight,
@@ -599,6 +612,7 @@ impl fmt::Debug for Sample {
         dbg_field!(dbg, value);
         dbg_field!(dbg, callchain);
         dbg_field!(dbg, raw);
+        dbg_field!(dbg, lbr_hw_index);
         dbg_field!(dbg, lbr);
         dbg_field!(dbg, regs_user);
         dbg_field!(dbg, stack_user);
