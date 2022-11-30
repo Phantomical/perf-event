@@ -818,6 +818,15 @@ impl<'a> Builder<'a> {
         self
     }
 
+    /// Set the size of the user stack to dump if [`SampleType::STACK_USER`]
+    /// is specified.
+    ///
+    /// This option is only available in Linux 3.7 and later.
+    pub fn sample_stack_user(mut self, stack_len: u32) -> Self {
+        self.attrs.sample_stack_user = stack_len;
+        self
+    }
+
     /// Specify what branches to include in the branch record when
     /// [`SampleType::BRANCH_STACK`] is specified.
     ///
