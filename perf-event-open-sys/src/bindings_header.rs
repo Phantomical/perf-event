@@ -23,3 +23,4 @@
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::useless_transmute)]
 
+pub use crate::registers::*;

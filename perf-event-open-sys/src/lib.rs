@@ -178,6 +178,14 @@
 //! [man]: http://man7.org/linux/man-pages/man2/perf_event_open.2.html
 //! [`perf_event`]: https://crates.io/crates/perf_event
 
+#[allow(dead_code)]
+#[allow(non_upper_case_globals)]
+#[allow(non_camel_case_types)]
+#[allow(non_snake_case)]
+#[allow(deref_nullptr)] // `bindgen_test_layout` tests use bogus code
+#[allow(clippy::all)]
+mod registers;
+
 #[cfg(target_arch = "aarch64")]
 #[path = "bindings_aarch64.rs"]
 pub mod bindings;

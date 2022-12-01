@@ -105,3 +105,32 @@ function gen_bindings {
 
 gen_bindings x86_64
 gen_bindings aarch64 arm64
+
+bindings="$target/registers.rs"
+
+cat > "$bindings" <<EOM
+// Both the arm and arm64 arches define this enum.
+//
+// To work around this we define it on its own so that it overrides the values
+// imported from the modules we generate below.
+pub type perf_event_arm_regs = ::std::os::raw::c_uint;
+EOM
+
+echo "Generating register bindings"
+for f in "$target/linux-$version"/arch/*/include/uapi/asm/perf_regs.h; do
+    arch=$(realpath --relative-to="$target/linux-$version" $f | cut -d / -f 2 | sed 's/-/_/g')
+
+    echo "mod $arch {"          >> "$bindings"
+    bindgen                     \
+        --impl-debug            \
+        --with-derive-default   \
+        --no-prepend-enum-name  \
+        "$f"                    \
+        >> "$bindings"
+
+    echo "}"                    >> "$bindings"
+    echo "pub use $arch::*;"    >> "$bindings"
+done
+
+rustfmt "$bindings"
+cp -f "$bindings" src/registers.rs
