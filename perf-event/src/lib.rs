@@ -76,7 +76,7 @@ use crate::samples::SampleType;
 use events::Event;
 use libc::pid_t;
 use perf_event_open_sys::bindings::perf_event_attr;
-use samples::{BranchSampleType, ClockId};
+use samples::{BranchSampleType, ClockId, RegMask};
 use std::fs::File;
 use std::io::{self, Read};
 use std::mem::ManuallyDrop;
@@ -824,6 +824,31 @@ impl<'a> Builder<'a> {
     /// This option is only available in Linux 3.7 and later.
     pub fn sample_stack_user(mut self, stack_len: u32) -> Self {
         self.attrs.sample_stack_user = stack_len;
+        self
+    }
+
+    /// Sets which registers to capture if [`SampleType::REGS_USER`] is set.
+    ///
+    /// Note that this will capture the registers on the user-space stack at
+    /// the time of the sampling interrupt. This is not necessarily the current
+    /// CPU registers at the time of the interrupt. However, if you're looking
+    /// to implement custom stack frame unwinding, this is what you want.
+    ///
+    /// This option is only available on Linux 3.7 and later.
+    pub fn sample_regs_user(mut self, regs: impl RegMask) -> Self {
+        self.attrs.sample_regs_user = regs.as_bits();
+        self
+    }
+
+    /// Sets which registers to capture if [`SampleType::REGS_INTR`] is set.
+    ///
+    /// These are the CPU registers at the time that the sampling interrupt was
+    /// triggered. Depending on the value of `precise_ip` the registers may not
+    /// be the values of the registers at the time the counter overflowed.
+    ///
+    /// This option is only available on Linux 3.19 and later.
+    pub fn sample_regs_intr(mut self, regs: impl RegMask) -> Self {
+        self.attrs.sample_regs_intr = regs.as_bits();
         self
     }
 
