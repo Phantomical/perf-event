@@ -372,6 +372,46 @@ bitflags! {
     }
 }
 
+impl X86RegMask {
+    /// Alias of [`AX`](Self::AX)
+    pub const EAX: Self = Self::AX;
+    /// Alias of [`BX`](Self::BX)
+    pub const EBX: Self = Self::BX;
+    /// Alias of [`CX`](Self::CX)
+    pub const ECX: Self = Self::CX;
+    /// Alias of [`DX`](Self::DX)
+    pub const EDX: Self = Self::DX;
+    /// Alias of [`SI`](Self::SI)
+    pub const ESI: Self = Self::SI;
+    /// Alias of [`DI`](Self::DI)
+    pub const EDI: Self = Self::DI;
+    /// Alias of [`BP`](Self::BP)
+    pub const EBP: Self = Self::BP;
+    /// Alias of [`SP`](Self::SP)
+    pub const ESP: Self = Self::SP;
+    /// Alias of [`IP`](Self::IP)
+    pub const EIP: Self = Self::IP;
+
+    /// Alias of [`AX`](Self::AX)
+    pub const RAX: Self = Self::AX;
+    /// Alias of [`BX`](Self::BX)
+    pub const RBX: Self = Self::BX;
+    /// Alias of [`CX`](Self::CX)
+    pub const RCX: Self = Self::CX;
+    /// Alias of [`DX`](Self::DX)
+    pub const RDX: Self = Self::DX;
+    /// Alias of [`SI`](Self::SI)
+    pub const RSI: Self = Self::SI;
+    /// Alias of [`DI`](Self::DI)
+    pub const RDI: Self = Self::DI;
+    /// Alias of [`BP`](Self::BP)
+    pub const RBP: Self = Self::BP;
+    /// Alias of [`SP`](Self::SP)
+    pub const RSP: Self = Self::SP;
+    /// Alias of [`IP`](Self::IP)
+    pub const RIP: Self = Self::IP;
+}
+
 impl RegMask for X86RegMask {
     fn as_bits(&self) -> u64 {
         self.bits()
