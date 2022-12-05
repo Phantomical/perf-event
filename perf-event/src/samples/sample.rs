@@ -4,6 +4,8 @@ use bitflags::bitflags;
 use bytes::Buf;
 use perf_event_open_sys::bindings::{self, perf_branch_entry};
 
+use crate::samples::{Arm64RegMask, X86RegMask};
+
 use super::{
     BranchSampleType, Parse, ParseBuf, ParseConfig, ReadValue, RecordEvent, SampleRegsAbi,
     SampleType,
@@ -340,6 +342,169 @@ impl BranchEntry {
     pub fn ty(&self) -> BranchType {
         BranchType(self.0.type_() as _)
     }
+}
+
+macro_rules! decl_reg_accessors {
+    {
+        $(
+            $( #[$attr:meta] )*
+            $method:ident = $mask:expr ;
+        )*
+    } => {
+        impl Registers {
+            $(
+                $( #[$attr] )*
+                #[allow(missing_docs)]
+                pub fn $method(&self) -> Option<u64> {
+                    const MASK: u64 = $mask.bits();
+                    // Mask with all bits before MASK set
+                    const LEADING_MASK: u64 = (1 << MASK.trailing_zeros()) - 1;
+
+                    if self.mask & MASK != 0 {
+                        let index = (self.mask & LEADING_MASK).count_ones();
+                        Some(self.regs[index as usize])
+                    } else {
+                        None
+                    }
+                }
+            )*
+        }
+    }
+}
+
+macro_rules! decl_xmm_reg_accessors {
+    {
+        $(
+            $( #[$attr:meta] )*
+            $method:ident = $mask:expr ;
+        )*
+    } => {
+        impl Registers {
+            $(
+                $( #[$attr] )*
+                #[allow(missing_docs)]
+                pub fn $method(&self) -> Option<u128> {
+                    const MASK: u64 = $mask.bits();
+                    // Mask with all bits before MASK set
+                    const LEADING_MASK: u64 = (1 << MASK.trailing_zeros()) - 1;
+
+                    if self.mask & MASK == MASK {
+                        let index = (self.mask & LEADING_MASK).count_ones() as usize;
+
+                        let lo = self.regs[index];
+                        let hi = self.regs[index + 1];
+                        Some(((hi as u128) << 64) | (lo as u128))
+                    } else {
+                        None
+                    }
+                }
+            )*
+        }
+    }
+}
+
+decl_reg_accessors! {
+    x86_ax = X86RegMask::AX;
+    x86_bx = X86RegMask::BX;
+    x86_cx = X86RegMask::CX;
+    x86_dx = X86RegMask::DX;
+    x86_si = X86RegMask::SI;
+    x86_di = X86RegMask::DI;
+    x86_bp = X86RegMask::BP;
+    x86_sp = X86RegMask::SP;
+    x86_ip = X86RegMask::IP;
+    x86_flags = X86RegMask::FLAGS;
+    x86_cs = X86RegMask::CS;
+    x86_ss = X86RegMask::SS;
+    x86_ds = X86RegMask::DS;
+    x86_es = X86RegMask::ES;
+    x86_fs = X86RegMask::FS;
+    x86_gs = X86RegMask::GS;
+    x86_r8 = X86RegMask::R8;
+    x86_r9 = X86RegMask::R9;
+    x86_r10 = X86RegMask::R10;
+    x86_r11 = X86RegMask::R11;
+    x86_r12 = X86RegMask::R12;
+    x86_r13 = X86RegMask::R13;
+    x86_r14 = X86RegMask::R14;
+    x86_r15 = X86RegMask::R15;
+
+    // XMM registers are handled separately since they are 128 bits
+
+    x86_eax = X86RegMask::EAX;
+    x86_ebx = X86RegMask::EBX;
+    x86_ecx = X86RegMask::ECX;
+    x86_edx = X86RegMask::EDX;
+    x86_esi = X86RegMask::ESI;
+    x86_edi = X86RegMask::EDI;
+    x86_ebp = X86RegMask::EBP;
+    x86_esp = X86RegMask::ESP;
+    x86_eip = X86RegMask::EIP;
+
+    x86_rax = X86RegMask::RAX;
+    x86_rbx = X86RegMask::RBX;
+    x86_rcx = X86RegMask::RCX;
+    x86_rdx = X86RegMask::RDX;
+    x86_rsi = X86RegMask::RSI;
+    x86_rdi = X86RegMask::RDI;
+    x86_rbp = X86RegMask::RBP;
+    x86_rsp = X86RegMask::RSP;
+    x86_rip = X86RegMask::RIP;
+}
+
+decl_xmm_reg_accessors! {
+    x86_xmm0 = X86RegMask::XMM0;
+    x86_xmm1 = X86RegMask::XMM1;
+    x86_xmm2 = X86RegMask::XMM2;
+    x86_xmm3 = X86RegMask::XMM3;
+    x86_xmm4 = X86RegMask::XMM4;
+    x86_xmm5 = X86RegMask::XMM5;
+    x86_xmm6 = X86RegMask::XMM6;
+    x86_xmm7 = X86RegMask::XMM7;
+    x86_xmm8 = X86RegMask::XMM8;
+    x86_xmm9 = X86RegMask::XMM9;
+    x86_xmm10 = X86RegMask::XMM10;
+    x86_xmm11 = X86RegMask::XMM11;
+    x86_xmm12 = X86RegMask::XMM12;
+    x86_xmm13 = X86RegMask::XMM13;
+    x86_xmm14 = X86RegMask::XMM14;
+    x86_xmm15 = X86RegMask::XMM15;
+}
+
+decl_reg_accessors! {
+    arm64_x0 = Arm64RegMask::X0;
+    arm64_x1 = Arm64RegMask::X1;
+    arm64_x2 = Arm64RegMask::X2;
+    arm64_x3 = Arm64RegMask::X3;
+    arm64_x4 = Arm64RegMask::X4;
+    arm64_x5 = Arm64RegMask::X5;
+    arm64_x6 = Arm64RegMask::X6;
+    arm64_x7 = Arm64RegMask::X7;
+    arm64_x8 = Arm64RegMask::X8;
+    arm64_x9 = Arm64RegMask::X9;
+    arm64_x10 = Arm64RegMask::X10;
+    arm64_x11 = Arm64RegMask::X11;
+    arm64_x12 = Arm64RegMask::X12;
+    arm64_x13 = Arm64RegMask::X13;
+    arm64_x14 = Arm64RegMask::X14;
+    arm64_x15 = Arm64RegMask::X15;
+    arm64_x16 = Arm64RegMask::X16;
+    arm64_x17 = Arm64RegMask::X17;
+    arm64_x18 = Arm64RegMask::X18;
+    arm64_x19 = Arm64RegMask::X19;
+    arm64_x20 = Arm64RegMask::X20;
+    arm64_x21 = Arm64RegMask::X21;
+    arm64_x22 = Arm64RegMask::X22;
+    arm64_x23 = Arm64RegMask::X23;
+    arm64_x24 = Arm64RegMask::X24;
+    arm64_x25 = Arm64RegMask::X25;
+    arm64_x26 = Arm64RegMask::X26;
+    arm64_x27 = Arm64RegMask::X27;
+    arm64_x28 = Arm64RegMask::X28;
+    arm64_x29 = Arm64RegMask::X29;
+    arm64_lr  = Arm64RegMask::LR;
+    arm64_sp  = Arm64RegMask::SP;
+    arm64_pc  = Arm64RegMask::PC;
 }
 
 impl Registers {
