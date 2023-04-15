@@ -317,12 +317,11 @@ impl Counter {
 
 impl std::fmt::Debug for Counter {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(
-            fmt,
-            "Counter {{ fd: {}, id: {} }}",
-            self.file.as_raw_fd(),
-            self.id
-        )
+        fmt.debug_struct("Counter")
+            .field("file", &self.as_raw_fd())
+            .field("id", &self.id())
+            .field("read_format", &self.read_format)
+            .finish()
     }
 }
 
