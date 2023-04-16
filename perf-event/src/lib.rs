@@ -91,7 +91,7 @@ pub mod hooks;
 pub use crate::builder::{Builder, UnsupportedOptionsError};
 pub use crate::counter::{CountAndTime, Counter, CounterData};
 pub use crate::flags::{Clock, ReadFormat, SampleFlag, SampleSkid};
-pub use crate::group::{Counts, Group};
+pub use crate::group::{Group, GroupData, GroupEntry, GroupIter};
 pub use crate::sampler::{Record, Sampler};
 
 // When the `"hooks"` feature is not enabled, call directly into

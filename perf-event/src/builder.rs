@@ -8,7 +8,7 @@ use libc::pid_t;
 
 use crate::events::Event;
 use crate::sys::bindings::perf_event_attr;
-use crate::{check_errno_syscall, sys, Clock, Counter, ReadFormat, SampleFlag, SampleSkid};
+use crate::{check_errno_syscall, sys, Clock, Counter, Group, ReadFormat, SampleFlag, SampleSkid};
 
 /// A builder for [`Counter`]s.
 ///
@@ -167,6 +167,18 @@ impl<'a> Builder<'a> {
         copy.attrs.read_format &= !ReadFormat::GROUP.bits();
 
         copy.build_with_group(None)
+    }
+
+    /// TODO: Document
+    pub fn build_group(&self) -> std::io::Result<Group> {
+        let mut copy = self.clone();
+
+        // Groups must always have ReadFormat::GROUP set
+        copy.attrs.read_format |= ReadFormat::GROUP.bits();
+        // We need the id field as well.
+        copy.attrs.read_format |= ReadFormat::ID.bits();
+
+        copy.build_with_group(None).map(Group::new_internal)
     }
 
     /// Alternative to `build` but with the group explicitly provided.

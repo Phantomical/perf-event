@@ -2,6 +2,7 @@ use std::fmt;
 use std::fs::File;
 use std::io::{self, Read};
 use std::os::unix::io::{AsRawFd, IntoRawFd, RawFd};
+use std::time::Duration;
 
 use crate::{check_errno_syscall, sys, ReadFormat, Sampler};
 
@@ -51,13 +52,13 @@ pub struct Counter {
     ///
     /// When a `Counter` is dropped, this `File` is dropped, and the kernel
     /// removes the counter from any group it belongs to.
-    file: File,
+    pub(crate) file: File,
 
     /// The unique id assigned to this counter by the kernel.
     id: u64,
 
     /// The [`ReadFormat`] flags that were used to configure this `Counter`.
-    read_format: ReadFormat,
+    pub(crate) read_format: ReadFormat,
 }
 
 impl Counter {
@@ -167,7 +168,7 @@ impl Counter {
     /// // ...
     /// let data = counter.read_full()?;
     /// let instructions = data.count();
-    /// let time_running = Duration::from_nanos(data.time_running().unwrap());
+    /// let time_running = data.time_running().unwrap();
     /// let ips = instructions as f64 / time_running.as_secs_f64();
     ///
     /// println!("instructions/s: {ips}");
@@ -261,18 +262,24 @@ impl Counter {
 
         Ok(CountAndTime {
             count: data.count(),
-            time_enabled: data.time_enabled().ok_or_else(|| {
-                io::Error::new(
-                    io::ErrorKind::Other,
-                    "time_enabled was not enabled within read_format",
-                )
-            })?,
-            time_running: data.time_running().ok_or_else(|| {
-                io::Error::new(
-                    io::ErrorKind::Other,
-                    "time_running was not enabled within read_format",
-                )
-            })?,
+            time_enabled: data
+                .time_enabled()
+                .ok_or_else(|| {
+                    io::Error::new(
+                        io::ErrorKind::Other,
+                        "time_enabled was not enabled within read_format",
+                    )
+                })?
+                .as_nanos() as _,
+            time_running: data
+                .time_running()
+                .ok_or_else(|| {
+                    io::Error::new(
+                        io::ErrorKind::Other,
+                        "time_running was not enabled within read_format",
+                    )
+                })?
+                .as_nanos() as _,
         })
     }
 
@@ -388,17 +395,18 @@ impl CounterData {
         self.value
     }
 
-    /// How long this counter was enabled by the program, in nanoseconds.
+    /// How long this counter was enabled by the program.
     ///
     /// This will be present if [`ReadFormat::TOTAL_TIME_ENABLED`] was
     /// specified in `read_format` when the counter was built.
-    pub fn time_enabled(&self) -> Option<u64> {
+    pub fn time_enabled(&self) -> Option<Duration> {
         self.read_format
             .contains(ReadFormat::TOTAL_TIME_ENABLED)
             .then_some(self.time_enabled)
+            .map(Duration::from_nanos)
     }
 
-    /// How long the kernel actually ran this counter, in nanoseconds.
+    /// How long the kernel actually ran this counter.
     ///
     /// If `time_enabled == time_running` then the counter ran for the entire
     /// period it was enabled, without interruption. Otherwise, the counter
@@ -407,10 +415,11 @@ impl CounterData {
     ///
     /// This will be present if [`ReadFormat::TOTAL_TIME_RUNNING`] was
     /// specified in `read_format` when the counter was built.
-    pub fn time_running(&self) -> Option<u64> {
+    pub fn time_running(&self) -> Option<Duration> {
         self.read_format
             .contains(ReadFormat::TOTAL_TIME_RUNNING)
             .then_some(self.time_running)
+            .map(Duration::from_nanos)
     }
 
     /// The number of lost samples of this event.

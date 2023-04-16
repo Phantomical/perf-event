@@ -83,6 +83,30 @@ mod bitflag_defs {
             .bits()
             .count_ones() as usize
             + 1;
+
+        // The format of a read from a group is like this
+        // struct read_format {
+        //     u64 nr;            /* The number of events */
+        //     u64 time_enabled;  /* if PERF_FORMAT_TOTAL_TIME_ENABLED */
+        //     u64 time_running;  /* if PERF_FORMAT_TOTAL_TIME_RUNNING */
+        //     struct {
+        //         u64 value;     /* The value of the event */
+        //         u64 id;        /* if PERF_FORMAT_ID */
+        //         u64 lost;      /* if PERF_FORMAT_LOST */
+        //     } values[nr];
+        // };
+
+        /// The size of the common prefix when reading a group.
+        pub(crate) fn prefix_len(&self) -> usize {
+            1 + (*self & (Self::TOTAL_TIME_ENABLED | Self::TOTAL_TIME_RUNNING))
+                .bits()
+                .count_ones() as usize
+        }
+
+        /// The size of each element when reading a group
+        pub(crate) fn element_len(&self) -> usize {
+            1 + (*self & (Self::ID | Self::LOST)).bits().count_ones() as usize
+        }
     }
 }
 
