@@ -8,8 +8,8 @@
 //! of instructions completed during one call to `println!`:
 //!
 //! ```
-//! use perf_event::{Builder, Group};
 //! use perf_event::events::Hardware;
+//! use perf_event::{Builder, Group};
 //!
 //! # fn main() -> std::io::Result<()> {
 //! // A `Group` lets us enable and disable several counters atomically.
@@ -24,14 +24,16 @@
 //! group.disable()?;
 //!
 //! let counts = group.read()?;
-//! println!("cycles / instructions: {} / {} ({:.2} cpi)",
-//!          counts[&cycles],
-//!          counts[&insns],
-//!          (counts[&cycles] as f64 / counts[&insns] as f64));
+//! println!(
+//!     "cycles / instructions: {} / {} ({:.2} cpi)",
+//!     counts[&cycles],
+//!     counts[&insns],
+//!     (counts[&cycles] as f64 / counts[&insns] as f64)
+//! );
 //!
 //! Ok(())
 //! # }
-//!```
+//! ```
 //!
 //! This crate is built on top of the Linux [`perf_event_open`][man] system
 //! call; that documentation has the authoritative explanations of exactly what
@@ -39,23 +41,22 @@
 //!
 //! There are two main types for measurement:
 //!
-//! -   A [`Counter`] is an individual counter. Use [`Builder`] to
-//!     construct one.
+//! - A [`Counter`] is an individual counter. Use [`Builder`] to construct one.
 //!
-//! -   A [`Group`] is a collection of counters that can be enabled and
-//!     disabled atomically, so that they cover exactly the same period of
-//!     execution, allowing meaningful comparisons of the individual values.
+//! - A [`Group`] is a collection of counters that can be enabled and disabled
+//!   atomically, so that they cover exactly the same period of execution,
+//!   allowing meaningful comparisons of the individual values.
 //!
 //! If you're familiar with the kernel API already:
 //!
-//! -   A `Builder` holds the arguments to a `perf_event_open` call:
-//!     a `struct perf_event_attr` and a few other fields.
+//! - A `Builder` holds the arguments to a `perf_event_open` call: a `struct
+//!   perf_event_attr` and a few other fields.
 //!
-//! -   `Counter` and `Group` objects are just event file descriptors, together
-//!     with their kernel id numbers, and some other details you need to
-//!     actually use them. They're different types because they yield different
-//!     types of results, and because you can't retrieve a `Group`'s counts
-//!     without knowing how many members it has.
+//! - `Counter` and `Group` objects are just event file descriptors, together
+//!   with their kernel id numbers, and some other details you need to actually
+//!   use them. They're different types because they yield different types of
+//!   results, and because you can't retrieve a `Group`'s counts without knowing
+//!   how many members it has.
 //!
 //! ### Call for PRs
 //!
@@ -74,25 +75,15 @@
 
 #![deny(missing_docs)]
 
-use std::io;
-
-#[macro_use]
-mod counter;
+pub mod events;
 
 mod builder;
-pub mod events;
 mod flags;
 mod group;
 mod sampler;
 
 #[cfg(feature = "hooks")]
 pub mod hooks;
-
-pub use crate::builder::{Builder, UnsupportedOptionsError};
-pub use crate::counter::{CountAndTime, Counter, CounterData};
-pub use crate::flags::{Clock, ReadFormat, SampleFlag, SampleSkid};
-pub use crate::group::{Group, GroupData, GroupEntry, GroupIter};
-pub use crate::sampler::{Record, Sampler};
 
 // When the `"hooks"` feature is not enabled, call directly into
 // `perf-event-open-sys`.
@@ -132,27 +123,32 @@ where
     }
 }
 
-#[test]
-fn simple_build() {
-    Builder::new(crate::events::Software::DUMMY)
-        .build()
-        .expect("Couldn't build default Counter");
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-#[test]
-#[cfg(target_os = "linux")]
-fn test_error_code_is_correct() {
-    // This configuration should always result in EINVAL
+    #[test]
+    fn simple_build() {
+        Builder::new(crate::events::Software::DUMMY)
+            .build()
+            .expect("Couldn't build default Counter");
+    }
 
-    // CPU_CLOCK is literally always supported so we don't have to worry
-    // about test failures when in VMs.
-    let builder = Builder::new(events::Software::CPU_CLOCK)
-        // There should _hopefully_ never be a system with this many CPUs.
-        .one_cpu(i32::MAX as usize)
-        .clone();
+    #[test]
+    #[cfg(target_os = "linux")]
+    fn test_error_code_is_correct() {
+        // This configuration should always result in EINVAL
 
-    match builder.build() {
-        Ok(_) => panic!("counter construction was not supposed to succeed"),
-        Err(e) => assert_eq!(e.raw_os_error(), Some(libc::EINVAL)),
+        // CPU_CLOCK is literally always supported so we don't have to worry
+        // about test failures when in VMs.
+        let builder = Builder::new(events::Software::CPU_CLOCK)
+            // There should _hopefully_ never be a system with this many CPUs.
+            .one_cpu(i32::MAX as usize)
+            .clone();
+
+        match builder.build() {
+            Ok(_) => panic!("counter construction was not supposed to succeed"),
+            Err(e) => assert_eq!(e.raw_os_error(), Some(libc::EINVAL)),
+        }
     }
 }

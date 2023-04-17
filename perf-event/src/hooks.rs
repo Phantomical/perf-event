@@ -19,16 +19,16 @@
 //!
 //! There are three main pieces:
 //!
-//! - The [`Hooks`] trait has a method for every system call and ioctl
-//!   that the `perf_event` crate uses.
+//! - The [`Hooks`] trait has a method for every system call and ioctl that the
+//!   `perf_event` crate uses.
 //!
 //! - The [`set_thread_hooks`] function lets you provide a `Box<dyn Hooks>`
 //!   trait object whose methods the calling thread will use for all subsequent
 //!   `perf_event` operations.
 //!
-//! - The [`clear_thread_hooks`] function restores the thread's
-//!   original state, so that subsequent `perf_event` operations use
-//!   the real Linux system calls.
+//! - The [`clear_thread_hooks`] function restores the thread's original state,
+//!   so that subsequent `perf_event` operations use the real Linux system
+//!   calls.
 //!
 //! This functionality is too low-level for direct use in tests, but
 //! it does provide the means with which one can build more ergonomic
@@ -185,7 +185,8 @@ macro_rules! expand_realhooks_impl {
     };
 }
 
-/// An implementation of the [`Hooks`] trait in terms of the real Linux system calls.
+/// An implementation of the [`Hooks`] trait in terms of the real Linux system
+/// calls.
 ///
 /// This type implements each methods of the [`Hooks`] trait by
 /// calling the underlying system call or ioctl. The following call
