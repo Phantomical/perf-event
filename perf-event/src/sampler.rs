@@ -5,8 +5,8 @@ use std::os::unix::io::{AsRawFd, IntoRawFd, RawFd};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 
-use crate::{check_errno_syscall, Counter};
 use crate::sys::bindings::{perf_event_header, perf_event_mmap_page};
+use crate::{check_errno_syscall, Counter};
 
 /// A sampled perf event.
 ///
