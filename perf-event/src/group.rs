@@ -161,25 +161,32 @@ impl Group {
         builder.build_with_group(self)
     }
 
-    /// Return the values of all the `Counter`s in this `Group` as a [`Counts`]
-    /// value.
+    /// Return the values of all the `Counter`s in this `Group` as a
+    /// [`GroupData`] value.
     ///
-    /// A `Counts` value is a map from specific `Counter`s to their values. You
-    /// can find a specific `Counter`'s value by indexing:
+    /// A [`GroupData`] value is a map from specific `Counter`s to their values.
+    /// You can find a specific `Counter`'s value by indexing:
     ///
-    /// ```ignore
-    /// let mut group = Group::new()?;
-    /// let counter1 = Builder::new().group(&mut group).kind(...).build()?;
-    /// let counter2 = Builder::new().group(&mut group).kind(...).build()?;
-    /// ...
-    /// let counts = group.read()?;
-    /// println!("Rhombus inclinations per taxi medallion: {} / {} ({:.0}%)",
-    ///          counts[&counter1],
-    ///          counts[&counter2],
-    ///          (counts[&counter1] as f64 / counts[&counter2] as f64) * 100.0);
     /// ```
+    /// # use perf_event::events::Software;
+    /// # const RHOMBUS_INCLINATIONS: Software = Software::DUMMY;
+    /// # const TAXI_MEDALLIONS: Software = Software::DUMMY;
+    /// #
+    /// use perf_event::{Builder, Group};
     ///
-    /// [`Counts`]: struct.Counts.html
+    /// let mut group = Group::new()?;
+    /// let counter1 = Builder::new(RHOMBUS_INCLINATIONS).build_with_group(&mut group)?;
+    /// let counter2 = Builder::new(TAXI_MEDALLIONS).build_with_group(&mut group)?;
+    /// // ...
+    /// let counts = group.read()?;
+    /// println!(
+    ///     "Rhombus inclinations per taxi medallion: {} / {} ({:.0}%)",
+    ///     counts[&counter1],
+    ///     counts[&counter2],
+    ///     (counts[&counter1] as f64 / counts[&counter2] as f64) * 100.0
+    /// );
+    /// # std::io::Result::Ok(())
+    /// ```
     pub fn read(&mut self) -> io::Result<GroupData> {
         let mut data = self.0.read_group()?;
         data.skip_group();
