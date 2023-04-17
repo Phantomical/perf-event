@@ -1,12 +1,10 @@
-use std::ffi::{c_int, c_uint};
 use std::fmt;
-use std::io::{self, Read};
+use std::io;
 use std::iter::FusedIterator;
-use std::os::unix::io::{AsRawFd, IntoRawFd, RawFd};
 use std::time::Duration;
 
 use crate::events::Software;
-use crate::{check_errno_syscall, sys, Builder, Counter, ReadFormat};
+use crate::{Builder, Counter, ReadFormat};
 
 const SKIP_GROUP: ReadFormat = ReadFormat::from_bits_retain(1 << (u64::BITS - 1));
 
@@ -18,19 +16,10 @@ const SKIP_GROUP: ReadFormat = ReadFormat::from_bits_retain(1 << (u64::BITS - 1)
 /// operations are only meaningful on counters that cover exactly the same
 /// period of execution.
 ///
-/// A `Counter` is placed in a group when it is created via the [`Group::add`]
-/// method. A `Group`'s [`read`] method returns values of all its member
-/// counters at once as a [`GroupData`] value, which can be indexed by `Counter`
-/// to retrieve a specific value.
-///
-/// The `Group` itself is also a counter. As such, you can index [`GroupData`]
-/// by using a `Group` as well. If constructed via [`Group::new`] it does not
-/// count anything but, if you so choose, you can construct one from a
-/// [`Builder`] using [`Builder::build_group`]. For backward compatibility
-/// reasons, if you construct a group using [`Group::new`] then its counter
-/// value will not show up in the iterator returned by [`GroupData::iter`].
-/// Note that its value will always be zero since [`Group::new`] creates a
-/// group counter using the [`Software::DUMMY`] event.
+/// A `Counter` is placed in a group when it is created via the
+/// [`Builder::build_with_group`] method. A `Group`'s [`read`] method returns
+/// values of all its member counters at once as a [`GroupData`] value, which
+/// can be indexed by `Counter` to retrieve a specific value.
 ///
 /// The lifetime of a `Group` and its associated `Counter`s are independent:
 /// you can drop them in any order and they will continue to work. A `Counter`
@@ -40,7 +29,6 @@ const SKIP_GROUP: ReadFormat = ReadFormat::from_bits_retain(1 << (u64::BITS - 1)
 /// Enabling or disabling a `Group` affects each `Counter` that belongs to it.
 /// Subsequent reads from the `Counter` will not reflect activity while the
 /// `Group` was disabled, unless the `Counter` is re-enabled individually.
-///
 ///
 /// ## Limits on group size
 ///
@@ -55,30 +43,34 @@ const SKIP_GROUP: ReadFormat = ReadFormat::from_bits_retain(1 << (u64::BITS - 1)
 /// But since the point of a counter group is that its members all cover exactly
 /// the same period of time, this tactic can't be applied to support large
 /// groups. If the kernel cannot schedule a group, its counters remain zero. I
-/// think you can detect this situation by comparing the group's [`time_enabled`]
-/// and [`time_running`] values. It might also be useful to set the `pinned` bit,
-/// which puts the counter in an error state if it's not able to be put on the
-/// CPU; see [#10].
+/// think you can detect this situation by comparing the group's
+/// [`time_enabled`] and [`time_running`] values. If the [`pinned`] option is
+/// set then you will also be able to detect this by [`read`] returning an error
+/// with kind [`UnexpectedEof`].
 ///
 /// According to the `perf_list(1)` man page, you may be able to free up a
 /// hardware counter by disabling the kernel's NMI watchdog, which reserves one
 /// for detecting kernel hangs:
 ///
-/// ```ignore
+/// ```text
 /// $ echo 0 > /proc/sys/kernel/nmi_watchdog
 /// ```
 ///
 /// You can reenable the watchdog when you're done like this:
 ///
-/// ```ignore
+/// ```text
 /// $ echo 1 > /proc/sys/kernel/nmi_watchdog
 /// ```
+///
+/// [`read`]: Self::read
+/// [`pinned`]: Builder::pinned
+/// [`UnexpectedEof`]: io::ErrorKind::UnexpectedEof
 ///
 /// # Examples
 /// Compute the average cycles-per-instruction (CPI) for a call to `println!`:
 /// ```
-/// use perf_event::{Builder, Group};
 /// use perf_event::events::Hardware;
+/// use perf_event::{Builder, Group};
 ///
 /// let mut group = Group::new()?;
 /// let cycles = group.add(&Builder::new(Hardware::CPU_CYCLES))?;
@@ -91,128 +83,87 @@ const SKIP_GROUP: ReadFormat = ReadFormat::from_bits_retain(1 << (u64::BITS - 1)
 /// group.disable()?;
 ///
 /// let counts = group.read()?;
-/// println!("cycles / instructions: {} / {} ({:.2} cpi)",
-///          counts[&cycles],
-///          counts[&insns],
-///          (counts[&cycles] as f64 / counts[&insns] as f64));
+/// println!(
+///     "cycles / instructions: {} / {} ({:.2} cpi)",
+///     counts[&cycles],
+///     counts[&insns],
+///     (counts[&cycles] as f64 / counts[&insns] as f64)
+/// );
 /// # std::io::Result::Ok(())
 /// ```
 ///
 /// [`group`]: Builder::group
 /// [`read`]: Group::read
-/// [`#5`]: https://github.com/jimblandy/perf-event/issues/5
-/// [`#10`]: https://github.com/jimblandy/perf-event/issues/10
 /// [`time_enabled`]: GroupData::time_enabled
 /// [`time_running`]: GroupData::time_running
-#[derive(Debug)]
-pub struct Group {
-    /// The internal counter that this group wraps around.
-    counter: Counter,
-
-    /// An upper bound on the number of Counters in this group. This lets us
-    /// allocate buffers of sufficient size for for PERF_FORMAT_GROUP reads.
-    ///
-    /// There's no way to ask the kernel how many members a group has. And if we
-    /// pass a group read a buffer that's too small, the kernel won't just
-    /// return a truncated result; it returns ENOSPC and leaves the buffer
-    /// untouched. So the buffer just has to be large enough.
-    ///
-    /// Since we're borrowed while building group members, adding members can
-    /// increment this counter. But it's harder to decrement it when a member
-    /// gets dropped: we don't require that a Group outlive its members, so they
-    /// can't necessarily update their `Group`'s count from a `Drop` impl. So we
-    /// just increment, giving us an overestimate, and then correct the count
-    /// when we actually do a read.
-    ///
-    /// This includes the dummy counter for the group itself.
-    max_members: usize,
-}
+pub struct Group(pub(crate) Counter);
 
 impl Group {
-    /// Build a group from a counter with the correct settings.
-    ///
-    /// This is used by `Builder::build_group`.
-    pub(crate) fn new_internal(counter: Counter) -> Self {
-        assert!(counter.read_format.contains(ReadFormat::GROUP));
-        assert!(counter.read_format.contains(ReadFormat::ID));
-
-        Self {
-            counter,
-            max_members: 1,
-        }
-    }
-
     /// Construct a new, empty `Group`.
+    ///
+    /// The resulting `Group` is only suitable for observing the current process
+    /// on any CPU. If you need to build a `Group` with different settings you
+    /// will need to use [`Builder::build_group`].
     pub fn new() -> io::Result<Group> {
-        let mut group = Builder::new(Software::DUMMY)
+        Builder::new(Software::DUMMY)
             .read_format(
                 ReadFormat::GROUP
                     | ReadFormat::TOTAL_TIME_ENABLED
                     | ReadFormat::TOTAL_TIME_RUNNING
                     | ReadFormat::ID,
             )
-            .build_group()?;
-        group.counter.read_format |= SKIP_GROUP;
-        Ok(group)
+            .build_group()
+    }
+
+    /// Access the internal counter for this group.
+    pub fn as_counter(&self) -> &Counter {
+        &self.0
+    }
+
+    /// Mutably access the internal counter for this group.
+    pub fn as_counter_mut(&mut self) -> &mut Counter {
+        &mut self.0
+    }
+
+    /// Convert this `Group` into its internal counter.
+    pub fn into_counter(self) -> Counter {
+        self.0
     }
 
     /// Return this group's kernel-assigned unique id.
-    ///
-    /// This can be useful when iterating over [`GroupData`].
     pub fn id(&self) -> u64 {
-        self.counter.id()
+        self.0.id()
+    }
+
+    /// Enable all counters in this `Group`.
+    pub fn enable(&mut self) -> io::Result<()> {
+        self.0.enable_group()
+    }
+
+    /// Disable all counters in this `Group`
+    pub fn disable(&mut self) -> io::Result<()> {
+        self.0.disable_group()
+    }
+
+    /// Reset the value of all counters in this `Group` to zero.
+    pub fn reset(&mut self) -> io::Result<()> {
+        self.0.reset_group()
     }
 
     /// Construct a new counter as a part of this group.
     ///
     /// # Example
     /// ```
-    /// use perf_event::{Builder, Group};
     /// use perf_event::events::Hardware;
+    /// use perf_event::{Builder, Group};
     ///
     /// let mut group = Group::new()?;
-    /// let counter = group.add(
-    ///     &Builder::new(Hardware::INSTRUCTIONS)
-    ///         .any_cpu()
-    /// );
+    /// let counter = group.add(&Builder::new(Hardware::INSTRUCTIONS).any_cpu());
     /// #
     /// # std::io::Result::Ok(())
     /// ```
     pub fn add(&mut self, builder: &Builder) -> io::Result<Counter> {
-        let counter = builder.build_with_group(Some(self.as_raw_fd()))?;
-        self.max_members += 1;
-        Ok(counter)
-    }
-
-    /// Allow all `Counter`s in this `Group` to begin counting their designated
-    /// events, as a single atomic operation.
-    ///
-    /// This does not affect whatever values the `Counter`s had previously; new
-    /// events add to the current counts. To clear the `Counter`s, use the
-    /// [`reset`] method.
-    ///
-    /// [`reset`]: #method.reset
-    pub fn enable(&mut self) -> io::Result<()> {
-        self.generic_ioctl(sys::ioctls::ENABLE)
-    }
-
-    /// Make all `Counter`s in this `Group` stop counting their designated
-    /// events, as a single atomic operation. Their counts are unaffected.
-    pub fn disable(&mut self) -> io::Result<()> {
-        self.generic_ioctl(sys::ioctls::DISABLE)
-    }
-
-    /// Reset all `Counter`s in this `Group` to zero, as a single atomic operation.
-    pub fn reset(&mut self) -> io::Result<()> {
-        self.generic_ioctl(sys::ioctls::RESET)
-    }
-
-    /// Perform some group ioctl.
-    ///
-    /// `f` must be a syscall that sets `errno` and returns `-1` on failure.
-    fn generic_ioctl(&mut self, f: unsafe fn(c_int, c_uint) -> c_int) -> io::Result<()> {
-        check_errno_syscall(|| unsafe { f(self.as_raw_fd(), sys::bindings::PERF_IOC_FLAG_GROUP) })
-            .map(|_| ())
+        builder.build_with_group(self)
     }
 
     /// Return the values of all the `Counter`s in this `Group` as a [`Counts`]
@@ -235,67 +186,21 @@ impl Group {
     ///
     /// [`Counts`]: struct.Counts.html
     pub fn read(&mut self) -> io::Result<GroupData> {
-        // The general structure format looks like this, depending on what
-        // read_format flags were enabled.
-        //
-        // struct read_format {
-        //     u64 nr;            /* The number of events */
-        //     u64 time_enabled;  /* if PERF_FORMAT_TOTAL_TIME_ENABLED */
-        //     u64 time_running;  /* if PERF_FORMAT_TOTAL_TIME_RUNNING */
-        //     struct {
-        //         u64 value;     /* The value of the event */
-        //         u64 id;        /* if PERF_FORMAT_ID */
-        //         u64 lost;      /* if PERF_FORMAT_LOST */
-        //     } values[nr];
-        // };
-        let prefix_len = self.counter.read_format.prefix_len();
-        let element_len = self.counter.read_format.element_len();
-        let buffer_len = prefix_len + self.max_members * element_len;
-
-        let mut data = vec![0_u64; buffer_len];
-        self.counter
-            .file
-            .read(crate::as_byte_slice_mut(&mut data))?;
-
-        // If we read less counters then the max then we'll need to truncate them.
-        data.truncate(prefix_len + data[0] as usize * element_len);
-
-        let data = GroupData {
-            data,
-            read_format: self.counter.read_format,
-        };
-
-        self.max_members = data.len();
-
+        let mut data = self.0.read_group()?;
+        data.set_skip_group();
         Ok(data)
     }
 }
 
-impl AsRawFd for Group {
-    fn as_raw_fd(&self) -> RawFd {
-        self.counter.as_raw_fd()
+impl AsRef<Counter> for &'_ Group {
+    fn as_ref(&self) -> &Counter {
+        &self.0
     }
 }
 
-impl IntoRawFd for Group {
-    fn into_raw_fd(self) -> RawFd {
-        self.counter.into_raw_fd()
-    }
-}
-
-pub trait CounterOrGroup {
-    fn id(&self) -> u64;
-}
-
-impl CounterOrGroup for Counter {
-    fn id(&self) -> u64 {
-        self.id()
-    }
-}
-
-impl CounterOrGroup for Group {
-    fn id(&self) -> u64 {
-        self.id()
+impl AsMut<Counter> for &'_ mut Group {
+    fn as_mut(&mut self) -> &mut Counter {
+        &mut self.0
     }
 }
 
@@ -305,17 +210,19 @@ impl CounterOrGroup for Group {
 /// You can index it with a reference to a specific `Counter`:
 ///
 /// ```
-/// use perf_event::{Builder, Group};
 /// use perf_event::events::Hardware;
+/// use perf_event::{Builder, Group};
 ///
 /// let mut group = Group::new()?;
 /// let cycles = group.add(&Builder::new(Hardware::CPU_CYCLES))?;
 /// let insns = group.add(&Builder::new(Hardware::INSTRUCTIONS))?;
 /// let counts = group.read()?;
-/// println!("cycles / instructions: {} / {} ({:.2} cpi)",
-///          counts[&cycles],
-///          counts[&insns],
-///          (counts[&cycles] as f64 / counts[&insns] as f64));
+/// println!(
+///     "cycles / instructions: {} / {} ({:.2} cpi)",
+///     counts[&cycles],
+///     counts[&insns],
+///     (counts[&cycles] as f64 / counts[&insns] as f64)
+/// );
 /// # std::io::Result::Ok(())
 /// ```
 ///
@@ -347,8 +254,8 @@ impl CounterOrGroup for Group {
 /// # let mut group = Group::new()?;
 /// # let insns = group.add(&Builder::new(Software::DUMMY))?;
 /// # let counts = group.read()?;
-/// let scale = counts.time_enabled().unwrap().as_secs_f64() /
-///             counts.time_running().unwrap().as_secs_f64();
+/// let scale =
+///     counts.time_enabled().unwrap().as_secs_f64() / counts.time_running().unwrap().as_secs_f64();
 /// for entry in &counts {
 ///     let value = entry.value() as f64 * scale;
 ///
@@ -369,6 +276,10 @@ pub struct GroupData {
 }
 
 impl GroupData {
+    pub(crate) fn new(data: Vec<u64>, read_format: ReadFormat) -> Self {
+        Self { data, read_format }
+    }
+
     /// Return the number of counters this `Counts` holds results for.
     #[allow(clippy::len_without_is_empty)] // Groups are never empty.
     pub fn len(&self) -> usize {
@@ -420,20 +331,20 @@ impl GroupData {
     /// If you know the counter is in the group then you can access the count
     /// via indexing.
     /// ```
-    /// use perf_event::{Builder};
     /// use perf_event::events::Hardware;
+    /// use perf_event::{Builder, Group};
     ///
-    /// let mut group = Builder::new(Hardware::INSTRUCTIONS).build_group()?;
-    /// let cycle_counter = group.add(&Builder::new(Hardware::CPU_CYCLES))?;
+    /// let mut group = Group::new()?;
+    /// let instrs = Builder::new(Hardware::INSTRUCTIONS).build_with_group(&mut group)?;
+    /// let cycles = Builder::new(Hardware::CPU_CYCLES).build_with_group(&mut group)?;
+    /// group.enable()?;
+    /// // ...
     /// let counts = group.read()?;
-    /// let instructions = counts[&group];
-    /// let cycles = counts[&cycle_counter];
+    /// let instrs = counts[&instrs];
+    /// let cycles = counts[&cycles];
     /// # std::io::Result::Ok(())
     /// ```
-    pub fn get<C>(&self, member: &C) -> Option<GroupEntry>
-    where
-        C: CounterOrGroup,
-    {
+    pub fn get(&self, member: &Counter) -> Option<GroupEntry> {
         self.iter_with_group()
             .find(|entry| entry.id() == member.id())
     }
@@ -471,6 +382,10 @@ impl GroupData {
         self.read_format.contains(SKIP_GROUP)
     }
 
+    fn set_skip_group(&mut self) {
+        self.read_format |= SKIP_GROUP;
+    }
+
     fn prefix_offset_of(&self, flag: ReadFormat) -> Option<usize> {
         debug_assert_eq!(flag.bits().count_ones(), 1);
 
@@ -497,30 +412,6 @@ impl std::ops::Index<&Counter> for GroupData {
                 entry.id() == ctr.id()
             })
             .unwrap_or_else(|| panic!("group contained no counter with id {}", ctr.id()));
-
-        &data[0]
-    }
-}
-
-impl std::ops::Index<&Group> for GroupData {
-    type Output = u64;
-
-    fn index(&self, group: &Group) -> &u64 {
-        let data = self
-            .iter_with_group()
-            .iter
-            .next()
-            .unwrap_or_else(|| panic!("group data was empty"));
-
-        let entry = GroupEntry::new(self.read_format, data);
-
-        if entry.id() != group.id() {
-            panic!(
-                "group id did not match that of source group ({} != {})",
-                group.id(),
-                entry.id()
-            );
-        }
 
         &data[0]
     }
