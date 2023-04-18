@@ -2,14 +2,17 @@ use std::fmt;
 use std::iter::FusedIterator;
 use std::time::Duration;
 
-use crate::{Counter, ReadFormat};
+use crate::{Builder, Counter, Group, ReadFormat};
 
 const SKIP_GROUP: ReadFormat = ReadFormat::from_bits_retain(1 << (u64::BITS - 1));
 
-/// A collection of counts from a [`Group`] of counters.
+used_in_docs!(Group);
+used_in_docs!(Builder);
+
+/// A collection of counts from a group of counters.
 ///
-/// This is the type returned by calling [`read`] on a [`Group`].
-/// You can index it with a reference to a specific `Counter`:
+/// This is the type returned by [`Counter::read_group`] and [`Group::read`].
+/// You can index it with a reference to a specific [`Counter`]:
 ///
 /// ```
 /// use perf_event::events::Hardware;
@@ -69,8 +72,6 @@ const SKIP_GROUP: ReadFormat = ReadFormat::from_bits_retain(1 << (u64::BITS - 1)
 /// }
 /// # std::io::Result::Ok(())
 /// ```
-///
-/// [`read`]: Group::read
 pub struct GroupData {
     // Raw results from the `read`.
     data: Vec<u64>,
@@ -101,7 +102,7 @@ impl GroupData {
     /// The duration for which the group was enabled.
     ///
     /// This will only be present if [`TOTAL_TIME_ENABLED`] was passed to
-    /// [`read_format`]
+    /// [`read_format`].
     ///
     /// [`TOTAL_TIME_ENABLED`]: ReadFormat::TOTAL_TIME_ENABLED
     /// [`read_format`]: Builder::read_format
@@ -114,15 +115,10 @@ impl GroupData {
     /// The duration for which the group was scheduled on the CPU.
     ///
     /// This will only be present if [`TOTAL_TIME_RUNNING`] was passed to
-    /// [`read_format`]
-    ///
-    /// [`TOTAL_TIME_ENABLED`]: ReadFormat::TOTAL_TIME_RUNNING
-    /// [`read_format`]: Builder::read_format
-    ///
-    /// Return the number of nanoseconds the `Group` was actually collecting
-    /// counts that contributed to this `Counts`' contents.
+    /// [`read_format`].
     ///
     /// [`TOTAL_TIME_RUNNING`]: ReadFormat::TOTAL_TIME_RUNNING
+    /// [`read_format`]: Builder::read_format
     pub fn time_running(&self) -> Option<Duration> {
         self.prefix_offset_of(ReadFormat::TOTAL_TIME_RUNNING)
             .map(|idx| self.data[idx])

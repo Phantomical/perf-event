@@ -1,8 +1,11 @@
 use bitflags::bitflags;
 
 use crate::sys::bindings;
+use crate::Builder;
 
 pub use self::bitflag_defs::*;
+
+used_in_docs!(Builder);
 
 // Temporary, until all the bitflag fields are documented.
 #[allow(missing_docs)]
@@ -116,7 +119,7 @@ mod bitflag_defs {
 /// a sample being gathered by the kernel. Less skid is better but there are
 /// hardware limitations around how small the skid can be.
 ///
-/// Also see [`Builder::precise_ip`](crate::Builder::precise_ip).
+/// Also see [`Builder::precise_ip`].
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub enum SampleSkid {
     /// There may be an arbitrary number of instructions between the event and

@@ -33,8 +33,8 @@ pub struct Sampler {
 ///
 /// When dropped, this type will advance the tail pointer in the ringbuffer of
 /// the [`Sampler`] that it references. To avoid this, you can use
-/// [`std::mem::forget`] so the next call to `Sampler::next_record` will return
-/// the same record again.
+/// [`std::mem::forget`] so the next call to [`Sampler::next_record`] will
+/// return the same record again.
 pub struct Record<'a> {
     page: *const perf_event_mmap_page,
     header: perf_event_header,

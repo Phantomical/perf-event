@@ -87,7 +87,6 @@ use crate::{Builder, Counter, GroupData, ReadFormat};
 /// # std::io::Result::Ok(())
 /// ```
 ///
-/// [`group`]: Builder::group
 /// [`read`]: Group::read
 /// [`time_enabled`]: GroupData::time_enabled
 /// [`time_running`]: GroupData::time_running

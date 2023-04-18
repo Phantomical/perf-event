@@ -58,8 +58,6 @@ use crate::{check_errno_syscall, sys, Clock, Counter, Group, ReadFormat, SampleF
 /// perf_event_attr` type.
 ///
 /// [`enable`]: Counter::enable
-/// [`Group`]: crate::Group
-/// [`Group::add`]: crate::Group::add
 #[derive(Clone, Debug)]
 pub struct Builder<'a> {
     attrs: perf_event_attr,
