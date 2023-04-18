@@ -45,7 +45,9 @@
 //!
 //! - A [`Group`] is a collection of counters that can be enabled and disabled
 //!   atomically, so that they cover exactly the same period of execution,
-//!   allowing meaningful comparisons of the individual values.
+//!   allowing meaningful comparisons of the individual values. You can
+//!   construct one via [`Group::new`] or use [`Builder`] to construct one with
+//!   custom settings.
 //!
 //! If you're familiar with the kernel API already:
 //!
