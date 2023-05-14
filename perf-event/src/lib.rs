@@ -123,6 +123,17 @@ pub use crate::group::Group;
 pub use crate::group_data::{GroupData, GroupEntry, GroupIter};
 pub use crate::sampler::{Record, Sampler};
 
+/// Support for parsing data contained within [`Record`](crate::Record)s.
+///
+/// Note that this module is actually just the [`perf-event-data`][ped] crate.
+/// The documentation has been inlined here for convenience.
+///
+/// [ped]: ::perf_event_data
+///
+/// # perf-event-data
+#[doc(inline)]
+pub use perf_event_data as data;
+
 // ... separate public exports and non-public ones
 
 use std::convert::TryInto;
