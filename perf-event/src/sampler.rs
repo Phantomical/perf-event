@@ -271,7 +271,7 @@ impl<'s> Record<'s> {
 
     /// Access the `misc` field of the kernel record header.
     ///
-    /// This contains a set of flags carry some additional metadata on the
+    /// This contains a set of flags that carry some additional metadata on the
     /// record being emitted by the kernel.
     pub fn misc(&self) -> u16 {
         self.header.misc
