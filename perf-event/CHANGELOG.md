@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Expose the `perf_event_data` crate as the `data` module.
 - Add `Record::parse_record` to parse records to `data::Record`.
+- Add `Software::CGROUP_SWITCHES` and `Software::BPF_OUTPUT` events (#9). @Phantomical
 
 ## [0.5.0] - 2023-04-20
 ### Added
