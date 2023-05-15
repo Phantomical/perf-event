@@ -2,14 +2,14 @@ use std::borrow::Cow;
 use std::convert::{AsMut, AsRef};
 use std::ops::{Deref, DerefMut};
 use std::os::unix::io::{AsRawFd, IntoRawFd, RawFd};
-use std::ptr::NonNull;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 
-use perf_event_data::parse::{ParseBuf, ParseBufChunk, ParseError, ParseResult};
+use data::parse::Parser;
 
+use crate::data::parse::{ParseBuf, ParseBufChunk, ParseError, ParseResult};
 use crate::sys::bindings::{perf_event_header, perf_event_mmap_page};
-use crate::{check_errno_syscall, Counter};
+use crate::{check_errno_syscall, data, Counter};
 
 /// A sampled perf event.
 ///
@@ -39,7 +39,7 @@ pub struct Sampler {
 /// [`std::mem::forget`] so the next call to [`Sampler::next_record`] will
 /// return the same record again.
 pub struct Record<'a> {
-    page: NonNull<perf_event_mmap_page>,
+    sampler: &'a Sampler,
     header: perf_event_header,
     data: ByteBuffer<'a>,
 }
@@ -70,7 +70,7 @@ impl Sampler {
     ///
     /// [`next_blocking`]: Self::next_blocking
     /// [man]: https://man7.org/linux/man-pages/man2/perf_event_open.2.html
-    pub fn next_record(&mut self) -> Option<Record> {
+    pub fn next_record(&self) -> Option<Record> {
         use std::{mem, ptr, slice};
 
         let page = self.page();
@@ -124,7 +124,7 @@ impl Sampler {
         buffer.truncate(header.size as usize - mem::size_of::<perf_event_header>());
 
         Some(Record {
-            page: unsafe { NonNull::new_unchecked(self.page() as *mut _) },
+            sampler: self,
             header,
             data: buffer,
         })
@@ -322,13 +322,19 @@ impl<'s> Record<'s> {
             }
         }
     }
+
+    /// Parse the data in this record to a [`data::Record`] enum.
+    pub fn parse_record(&self) -> ParseResult<data::Record> {
+        let mut parser = Parser::new(self.data, self.sampler.config().clone());
+        data::Record::parse_with_header(&mut parser, self.header)
+    }
 }
 
 impl<'s> Drop for Record<'s> {
     fn drop(&mut self) {
         use std::ptr;
 
-        let page = self.page.as_ptr() as *const perf_event_mmap_page;
+        let page = self.sampler.page();
 
         unsafe {
             // SAFETY:
