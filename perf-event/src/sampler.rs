@@ -5,6 +5,8 @@ use std::os::unix::io::{AsRawFd, IntoRawFd, RawFd};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 
+use perf_event_data::parse::{ParseBuf, ParseResult, ParseBufChunk, ParseError};
+
 use crate::sys::bindings::{perf_event_header, perf_event_mmap_page};
 use crate::{check_errno_syscall, Counter};
 
@@ -415,6 +417,28 @@ impl<'a> ByteBuffer<'a> {
                 d_head.copy_from_slice(a);
                 d_rest.copy_from_slice(b_head);
                 *self = Self::Single(b_rest);
+            }
+        }
+    }
+}
+
+unsafe impl<'a> ParseBuf<'a> for ByteBuffer<'a> {
+    fn chunk(&mut self) -> ParseResult<ParseBufChunk<'_, 'a>> {
+        match self {
+            Self::Single(chunk) if chunk.is_empty() => Err(ParseError::eof()),
+            Self::Single(chunk) => Ok(ParseBufChunk::External(chunk)),
+            Self::Split([chunk, _]) => Ok(ParseBufChunk::External(chunk)),
+        }
+    }
+
+    fn advance(&mut self, mut count: usize) {
+        match self {
+            Self::Single(chunk) => chunk.advance(count),
+            Self::Split([chunk, _]) if count < chunk.len() => chunk.advance(count),
+            Self::Split([a, b]) => {
+                count -= a.len();
+                b.advance(count);
+                *self = Self::Single(*b);
             }
         }
     }
