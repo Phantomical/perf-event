@@ -1,4 +1,3 @@
-
 /// Macro for defining a binding to a C-like enum.
 ///
 /// Normally, we would like to use a rust enum to represent a C enum. However,
