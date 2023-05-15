@@ -2,10 +2,11 @@ use std::borrow::Cow;
 use std::convert::{AsMut, AsRef};
 use std::ops::{Deref, DerefMut};
 use std::os::unix::io::{AsRawFd, IntoRawFd, RawFd};
+use std::ptr::NonNull;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 
-use perf_event_data::parse::{ParseBuf, ParseResult, ParseBufChunk, ParseError};
+use perf_event_data::parse::{ParseBuf, ParseBufChunk, ParseError, ParseResult};
 
 use crate::sys::bindings::{perf_event_header, perf_event_mmap_page};
 use crate::{check_errno_syscall, Counter};
@@ -38,7 +39,7 @@ pub struct Sampler {
 /// [`std::mem::forget`] so the next call to [`Sampler::next_record`] will
 /// return the same record again.
 pub struct Record<'a> {
-    page: *const perf_event_mmap_page,
+    page: NonNull<perf_event_mmap_page>,
     header: perf_event_header,
     data: ByteBuffer<'a>,
 }
@@ -53,6 +54,8 @@ enum ByteBuffer<'a> {
 
 impl Sampler {
     pub(crate) fn new(counter: Counter, mmap: memmap2::MmapRaw) -> Self {
+        assert!(!mmap.as_ptr().is_null());
+
         Self { counter, mmap }
     }
 
@@ -121,7 +124,7 @@ impl Sampler {
         buffer.truncate(header.size as usize - mem::size_of::<perf_event_header>());
 
         Some(Record {
-            page: self.page(),
+            page: unsafe { NonNull::new_unchecked(self.page() as *mut _) },
             header,
             data: buffer,
         })
@@ -325,12 +328,14 @@ impl<'s> Drop for Record<'s> {
     fn drop(&mut self) {
         use std::ptr;
 
+        let page = self.page.as_ptr() as *const perf_event_mmap_page;
+
         unsafe {
             // SAFETY:
             // - page points to a valid instance of perf_event_mmap_page
             // - data_tail is only written on our side so it is safe to do a non-atomic read
             //   here.
-            let tail = ptr::read(ptr::addr_of!((*self.page).data_tail));
+            let tail = ptr::read(ptr::addr_of!((*page).data_tail));
 
             // ATOMICS:
             // - The release store here prevents the compiler from re-ordering any reads
@@ -338,7 +343,7 @@ impl<'s> Drop for Record<'s> {
             // SAFETY:
             // - page points to a valid instance of perf_event_mmap_page
             atomic_store(
-                ptr::addr_of!((*self.page).data_tail),
+                ptr::addr_of!((*page).data_tail),
                 tail + (self.header.size as u64),
                 Ordering::Release,
             );
