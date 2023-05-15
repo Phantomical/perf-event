@@ -129,9 +129,9 @@ pub use crate::sampler::{Record, Sampler};
 ///
 /// Note that this module is actually just the [`perf-event-data`][ped] crate.
 /// The documentation has been inlined here for convenience.
-///
 // TODO: Directly linking to the crate causes an ICE in rustdoc. It is fixed in
 //       nightly but not in the latest stable.
+///
 /// [ped]: http://docs.rs/perf-event-data
 ///
 /// # perf-event-data
