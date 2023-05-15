@@ -125,12 +125,14 @@ pub use crate::group::Group;
 pub use crate::group_data::{GroupData, GroupEntry, GroupIter};
 pub use crate::sampler::{Record, Sampler};
 
-/// Support for parsing data contained within [`Record`](crate::Record)s.
+/// Support for parsing data contained within `Record`s.
 ///
 /// Note that this module is actually just the [`perf-event-data`][ped] crate.
 /// The documentation has been inlined here for convenience.
 ///
-/// [ped]: ::perf_event_data
+// TODO: Directly linking to the crate causes an ICE in rustdoc. It is fixed in
+//       nightly but not in the latest stable.
+/// [ped]: http://docs.rs/perf-event-data
 ///
 /// # perf-event-data
 #[doc(inline)]
