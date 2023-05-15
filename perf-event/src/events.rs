@@ -102,65 +102,64 @@ impl Event for Hardware {
     }
 }
 
-/// Software counters, implemented by the kernel.
-///
-/// Each variant of this enum corresponds to a particular `PERF_COUNT_SW_`...
-/// value supported by the [`perf_event_open`][man] system call.
-///
-/// [man]: http://man7.org/linux/man-pages/man2/perf_event_open.2.html
-#[repr(u32)]
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-#[non_exhaustive]
-pub enum Software {
-    /// High-resolution per-CPU timer.
-    CPU_CLOCK = bindings::PERF_COUNT_SW_CPU_CLOCK,
-
-    /// Per-task clock count.
-    TASK_CLOCK = bindings::PERF_COUNT_SW_TASK_CLOCK,
-
-    /// Page faults.
-    PAGE_FAULTS = bindings::PERF_COUNT_SW_PAGE_FAULTS,
-
-    /// Context switches.
-    CONTEXT_SWITCHES = bindings::PERF_COUNT_SW_CONTEXT_SWITCHES,
-
-    /// Process migration to another CPU.
-    CPU_MIGRATIONS = bindings::PERF_COUNT_SW_CPU_MIGRATIONS,
-
-    /// Minor page faults: resolved without needing I/O.
-    PAGE_FAULTS_MIN = bindings::PERF_COUNT_SW_PAGE_FAULTS_MIN,
-
-    /// Major page faults: I/O was required to resolve these.
-    PAGE_FAULTS_MAJ = bindings::PERF_COUNT_SW_PAGE_FAULTS_MAJ,
-
-    /// Alignment faults that required kernel intervention.
+c_enum! {
+    /// Software counters, implemented by the kernel.
     ///
-    /// This is only generated on some CPUs, and never on x86_64 or
-    /// ARM.
-    ALIGNMENT_FAULTS = bindings::PERF_COUNT_SW_ALIGNMENT_FAULTS,
-
-    /// Instruction emulation faults.
-    EMULATION_FAULTS = bindings::PERF_COUNT_SW_EMULATION_FAULTS,
-
-    /// Placeholder, for collecting informational sample records.
-    DUMMY = bindings::PERF_COUNT_SW_DUMMY,
-
-    /// Special event type for streaming data from a eBPF program.
+    /// Each variant of this enum corresponds to a particular `PERF_COUNT_SW_`...
+    /// value supported by the [`perf_event_open`][man] system call.
     ///
-    /// See the documentation of the `bpf_perf_event_output` method in the
-    /// [`bpf-helpers(7)`] manpage for details on how to use this event type.
-    ///
-    /// [`bpf-helpers(7)`]: https://man7.org/linux/man-pages/man7/bpf-helpers.7.html
-    BPF_OUTPUT = bindings::PERF_COUNT_SW_BPF_OUTPUT,
+    /// [man]: http://man7.org/linux/man-pages/man2/perf_event_open.2.html
+    pub struct Software : u64 {
+        /// High-resolution per-CPU timer.
+        const CPU_CLOCK = bindings::PERF_COUNT_SW_CPU_CLOCK as _;
 
-    /// Context switches to a task in a different cgroup.
-    CGROUP_SWITCHES = bindings::PERF_COUNT_SW_CGROUP_SWITCHES,
+        /// Per-task clock count.
+        const TASK_CLOCK = bindings::PERF_COUNT_SW_TASK_CLOCK as _;
+
+        /// Page faults.
+        const PAGE_FAULTS = bindings::PERF_COUNT_SW_PAGE_FAULTS as _;
+
+        /// Context switches.
+        const CONTEXT_SWITCHES = bindings::PERF_COUNT_SW_CONTEXT_SWITCHES as _;
+
+        /// Process migration to another CPU.
+        const CPU_MIGRATIONS = bindings::PERF_COUNT_SW_CPU_MIGRATIONS as _;
+
+        /// Minor page faults: resolved without needing I/O.
+        const PAGE_FAULTS_MIN = bindings::PERF_COUNT_SW_PAGE_FAULTS_MIN as _;
+
+        /// Major page faults: I/O was required to resolve these.
+        const PAGE_FAULTS_MAJ = bindings::PERF_COUNT_SW_PAGE_FAULTS_MAJ as _;
+
+        /// Alignment faults that required kernel intervention.
+        ///
+        /// This is only generated on some CPUs, and never on x86_64 or
+        /// ARM.
+        const ALIGNMENT_FAULTS = bindings::PERF_COUNT_SW_ALIGNMENT_FAULTS as _;
+
+        /// Instruction emulation faults.
+        const EMULATION_FAULTS = bindings::PERF_COUNT_SW_EMULATION_FAULTS as _;
+
+        /// Placeholder, for collecting informational sample records.
+        const DUMMY = bindings::PERF_COUNT_SW_DUMMY as _;
+
+        /// Special event type for streaming data from a eBPF program.
+        ///
+        /// See the documentation of the `bpf_perf_event_output` method in the
+        /// [`bpf-helpers(7)`] manpage for details on how to use this event type.
+        ///
+        /// [`bpf-helpers(7)`]: https://man7.org/linux/man-pages/man7/bpf-helpers.7.html
+        const BPF_OUTPUT = bindings::PERF_COUNT_SW_BPF_OUTPUT as _;
+
+        /// Context switches to a task in a different cgroup.
+        const CGROUP_SWITCHES = bindings::PERF_COUNT_SW_CGROUP_SWITCHES as _;
+    }
 }
 
 impl Event for Software {
     fn update_attrs(self, attr: &mut bindings::perf_event_attr) {
         attr.type_ = bindings::PERF_TYPE_SOFTWARE;
-        attr.config = self as _;
+        attr.config = self.0;
     }
 }
 
