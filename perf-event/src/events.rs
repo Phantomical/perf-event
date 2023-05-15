@@ -152,7 +152,7 @@ pub enum Software {
     /// [`bpf-helpers(7)`]: https://man7.org/linux/man-pages/man7/bpf-helpers.7.html
     BPF_OUTPUT = bindings::PERF_COUNT_SW_BPF_OUTPUT,
 
-    /// Cgroup switches.
+    /// Context switches to a task in a different cgroup.
     CGROUP_SWITCHES = bindings::PERF_COUNT_SW_CGROUP_SWITCHES,
 }
 
