@@ -449,7 +449,7 @@ unsafe impl<'a> ParseBuf<'a> for ByteBuffer<'a> {
             Self::Split([a, b]) => {
                 count -= a.len();
                 b.advance(count);
-                *self = Self::Single(*b);
+                *self = Self::Single(b);
             }
         }
     }
