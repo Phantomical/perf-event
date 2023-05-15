@@ -224,6 +224,11 @@ impl Counter {
         self.id
     }
 
+    /// The [`ParseConfig`] for this `Counter`.
+    pub fn config(&self) -> &ParseConfig<Native> {
+        &self.config
+    }
+
     /// Allow this `Counter` to begin counting its designated event.
     ///
     /// This does not affect whatever value the `Counter` had previously; new
