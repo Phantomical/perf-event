@@ -63,6 +63,7 @@ c_enum! {
     /// value supported by the [`perf_event_open`][man] system call.
     ///
     /// [man]: http://man7.org/linux/man-pages/man2/perf_event_open.2.html
+    #[repr(transparent)]
     #[derive(Clone, Copy, Eq, PartialEq, Hash)]
     pub enum Hardware : u64 {
         /// Total cycles.
@@ -111,6 +112,7 @@ c_enum! {
     /// value supported by the [`perf_event_open`][man] system call.
     ///
     /// [man]: http://man7.org/linux/man-pages/man2/perf_event_open.2.html
+    #[repr(transparent)]
     #[derive(Clone, Copy, Eq, PartialEq, Hash)]
     pub enum Software : u64 {
         /// High-resolution per-CPU timer.
@@ -220,7 +222,7 @@ pub struct Cache {
 
 impl Cache {
     fn as_config(&self) -> u64 {
-        self.which as u64 | ((self.operation as u64) << 8) | ((self.result as u64) << 16)
+        self.which.0 as u64 | ((self.operation.0 as u64) << 8) | ((self.result.0 as u64) << 16)
     }
 }
 
@@ -231,80 +233,82 @@ impl Event for Cache {
     }
 }
 
-/// A cache whose events we would like to count.
-///
-/// This is used in the `Cache` type as part of the identification of a cache
-/// event. Each variant here corresponds to a particular
-/// `PERF_COUNT_HW_CACHE_...` constant supported by the [`perf_event_open`][man]
-/// system call.
-///
-/// [man]: http://man7.org/linux/man-pages/man2/perf_event_open.2.html
-#[repr(u32)]
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub enum WhichCache {
-    /// Level 1 data cache.
-    L1D = bindings::PERF_COUNT_HW_CACHE_L1D,
+c_enum! {
+    /// A cache whose events we would like to count.
+    ///
+    /// This is used in the `Cache` type as part of the identification of a cache
+    /// event. Each variant here corresponds to a particular
+    /// `PERF_COUNT_HW_CACHE_...` constant supported by the [`perf_event_open`][man]
+    /// system call.
+    ///
+    /// [man]: http://man7.org/linux/man-pages/man2/perf_event_open.2.html
+    #[repr(transparent)]
+    #[derive(Clone, Copy, Eq, PartialEq, Hash)]
+    pub enum WhichCache : u32 {
+        /// Level 1 data cache.
+        L1D = bindings::PERF_COUNT_HW_CACHE_L1D,
 
-    /// Level 1 instruction cache.
-    L1I = bindings::PERF_COUNT_HW_CACHE_L1I,
+        /// Level 1 instruction cache.
+        L1I = bindings::PERF_COUNT_HW_CACHE_L1I,
 
-    /// Last-level cache.
-    LL = bindings::PERF_COUNT_HW_CACHE_LL,
+        /// Last-level cache.
+        LL = bindings::PERF_COUNT_HW_CACHE_LL,
 
-    /// Data translation lookaside buffer (virtual address translation).
-    DTLB = bindings::PERF_COUNT_HW_CACHE_DTLB,
+        /// Data translation lookaside buffer (virtual address translation).
+        DTLB = bindings::PERF_COUNT_HW_CACHE_DTLB,
 
-    /// Instruction translation lookaside buffer (virtual address translation).
-    ITLB = bindings::PERF_COUNT_HW_CACHE_ITLB,
+        /// Instruction translation lookaside buffer (virtual address translation).
+        ITLB = bindings::PERF_COUNT_HW_CACHE_ITLB,
 
-    /// Branch prediction.
-    BPU = bindings::PERF_COUNT_HW_CACHE_BPU,
+        /// Branch prediction.
+        BPU = bindings::PERF_COUNT_HW_CACHE_BPU,
 
-    /// Memory accesses that stay local to the originating NUMA node.
-    NODE = bindings::PERF_COUNT_HW_CACHE_NODE,
-}
+        /// Memory accesses that stay local to the originating NUMA node.
+        NODE = bindings::PERF_COUNT_HW_CACHE_NODE,
+    }
 
-/// What sort of cache operation we would like to observe.
-///
-/// This is used in the `Cache` type as part of the identification of a cache
-/// event. Each variant here corresponds to a particular
-/// `PERF_COUNT_HW_CACHE_OP_...` constant supported by the
-/// [`perf_event_open`][man] system call.
-///
-/// [man]: http://man7.org/linux/man-pages/man2/perf_event_open.2.html
-#[repr(u32)]
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub enum CacheOp {
-    /// Read accesses.
-    READ = bindings::PERF_COUNT_HW_CACHE_OP_READ,
+    /// What sort of cache operation we would like to observe.
+    ///
+    /// This is used in the `Cache` type as part of the identification of a cache
+    /// event. Each variant here corresponds to a particular
+    /// `PERF_COUNT_HW_CACHE_OP_...` constant supported by the
+    /// [`perf_event_open`][man] system call.
+    ///
+    /// [man]: http://man7.org/linux/man-pages/man2/perf_event_open.2.html
+    #[repr(transparent)]
+    #[derive(Clone, Copy, Eq, PartialEq, Hash)]
+    pub enum CacheOp : u32 {
+        /// Read accesses.
+        READ = bindings::PERF_COUNT_HW_CACHE_OP_READ,
 
-    /// Write accesses.
-    WRITE = bindings::PERF_COUNT_HW_CACHE_OP_WRITE,
+        /// Write accesses.
+        WRITE = bindings::PERF_COUNT_HW_CACHE_OP_WRITE,
 
-    /// Prefetch accesses.
-    PREFETCH = bindings::PERF_COUNT_HW_CACHE_OP_PREFETCH,
-}
+        /// Prefetch accesses.
+        PREFETCH = bindings::PERF_COUNT_HW_CACHE_OP_PREFETCH,
+    }
 
-#[repr(u32)]
-/// What sort of cache result we're interested in observing.
-///
-/// `ACCESS` counts the total number of operations performed on the cache,
-/// whereas `MISS` counts only those requests that the cache could not satisfy.
-/// Treating `MISS` as a fraction of `ACCESS` gives you the cache's miss rate.
-///
-/// This is used used in the `Cache` type as part of the identification of a
-/// cache event. Each variant here corresponds to a particular
-/// `PERF_COUNT_HW_CACHE_RESULT_...` constant supported by the
-/// [`perf_event_open`][man] system call.
-///
-/// [man]: http://man7.org/linux/man-pages/man2/perf_event_open.2.html
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub enum CacheResult {
-    /// Cache was accessed.
-    ACCESS = bindings::PERF_COUNT_HW_CACHE_RESULT_ACCESS,
+    /// What sort of cache result we're interested in observing.
+    ///
+    /// `ACCESS` counts the total number of operations performed on the cache,
+    /// whereas `MISS` counts only those requests that the cache could not satisfy.
+    /// Treating `MISS` as a fraction of `ACCESS` gives you the cache's miss rate.
+    ///
+    /// This is used used in the `Cache` type as part of the identification of a
+    /// cache event. Each variant here corresponds to a particular
+    /// `PERF_COUNT_HW_CACHE_RESULT_...` constant supported by the
+    /// [`perf_event_open`][man] system call.
+    ///
+    /// [man]: http://man7.org/linux/man-pages/man2/perf_event_open.2.html
+    #[repr(transparent)]
+    #[derive(Clone, Copy, Eq, PartialEq, Hash)]
+    pub enum CacheResult : u32 {
+        /// Cache was accessed.
+        ACCESS = bindings::PERF_COUNT_HW_CACHE_RESULT_ACCESS,
 
-    /// Cache access was a miss.
-    MISS = bindings::PERF_COUNT_HW_CACHE_RESULT_MISS,
+        /// Cache access was a miss.
+        MISS = bindings::PERF_COUNT_HW_CACHE_RESULT_MISS,
+    }
 }
 
 bitflags! {
