@@ -241,27 +241,27 @@ c_enum! {
     /// [man]: http://man7.org/linux/man-pages/man2/perf_event_open.2.html
     #[repr(transparent)]
     #[derive(Clone, Copy, Eq, PartialEq, Hash)]
-    pub enum WhichCache : u32 {
+    pub enum WhichCache : u8 {
         /// Level 1 data cache.
-        L1D = bindings::PERF_COUNT_HW_CACHE_L1D,
+        L1D = bindings::PERF_COUNT_HW_CACHE_L1D as _,
 
         /// Level 1 instruction cache.
-        L1I = bindings::PERF_COUNT_HW_CACHE_L1I,
+        L1I = bindings::PERF_COUNT_HW_CACHE_L1I as _,
 
         /// Last-level cache.
-        LL = bindings::PERF_COUNT_HW_CACHE_LL,
+        LL = bindings::PERF_COUNT_HW_CACHE_LL as _,
 
         /// Data translation lookaside buffer (virtual address translation).
-        DTLB = bindings::PERF_COUNT_HW_CACHE_DTLB,
+        DTLB = bindings::PERF_COUNT_HW_CACHE_DTLB as _,
 
         /// Instruction translation lookaside buffer (virtual address translation).
-        ITLB = bindings::PERF_COUNT_HW_CACHE_ITLB,
+        ITLB = bindings::PERF_COUNT_HW_CACHE_ITLB as _,
 
         /// Branch prediction.
-        BPU = bindings::PERF_COUNT_HW_CACHE_BPU,
+        BPU = bindings::PERF_COUNT_HW_CACHE_BPU as _,
 
         /// Memory accesses that stay local to the originating NUMA node.
-        NODE = bindings::PERF_COUNT_HW_CACHE_NODE,
+        NODE = bindings::PERF_COUNT_HW_CACHE_NODE as _,
     }
 
     /// What sort of cache operation we would like to observe.
@@ -274,15 +274,15 @@ c_enum! {
     /// [man]: http://man7.org/linux/man-pages/man2/perf_event_open.2.html
     #[repr(transparent)]
     #[derive(Clone, Copy, Eq, PartialEq, Hash)]
-    pub enum CacheOp : u32 {
+    pub enum CacheOp : u8 {
         /// Read accesses.
-        READ = bindings::PERF_COUNT_HW_CACHE_OP_READ,
+        READ = bindings::PERF_COUNT_HW_CACHE_OP_READ as _,
 
         /// Write accesses.
-        WRITE = bindings::PERF_COUNT_HW_CACHE_OP_WRITE,
+        WRITE = bindings::PERF_COUNT_HW_CACHE_OP_WRITE as _,
 
         /// Prefetch accesses.
-        PREFETCH = bindings::PERF_COUNT_HW_CACHE_OP_PREFETCH,
+        PREFETCH = bindings::PERF_COUNT_HW_CACHE_OP_PREFETCH as _,
     }
 
     /// What sort of cache result we're interested in observing.
@@ -299,12 +299,12 @@ c_enum! {
     /// [man]: http://man7.org/linux/man-pages/man2/perf_event_open.2.html
     #[repr(transparent)]
     #[derive(Clone, Copy, Eq, PartialEq, Hash)]
-    pub enum CacheResult : u32 {
+    pub enum CacheResult : u8 {
         /// Cache was accessed.
-        ACCESS = bindings::PERF_COUNT_HW_CACHE_RESULT_ACCESS,
+        ACCESS = bindings::PERF_COUNT_HW_CACHE_RESULT_ACCESS as _,
 
         /// Cache access was a miss.
-        MISS = bindings::PERF_COUNT_HW_CACHE_RESULT_MISS,
+        MISS = bindings::PERF_COUNT_HW_CACHE_RESULT_MISS as _,
     }
 }
 

@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - `Hardware` is no longer a rust enum. The constants remain the same.
 - `Software` is no longer a rust enum. The constants remain the same.
+- The same applies for `WhichCache`, `CacheOp`, and `CacheResult`
 
 ## [0.5.0] - 2023-04-20
 ### Added
