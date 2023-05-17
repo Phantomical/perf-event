@@ -1,4 +1,4 @@
-use perf_event::events::{Cache, CacheOp, CacheResult, Hardware, CacheId};
+use perf_event::events::{Cache, CacheId, CacheOp, CacheResult, Hardware};
 use perf_event::{Builder, Group};
 
 fn main() -> std::io::Result<()> {
