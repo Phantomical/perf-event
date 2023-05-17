@@ -1,6 +1,6 @@
 //! Events we can monitor or count.
 //!
-//! There are three general categories of event:
+//! There are a few general categories of event:
 //!
 //! - [`Hardware`] events are counted by the processor itself. This includes
 //!   things like clock cycles, instructions retired, and cache and branch
@@ -33,6 +33,7 @@
 
 #![allow(non_camel_case_types)]
 use bitflags::bitflags;
+use c_enum::c_enum;
 use perf_event_open_sys::bindings;
 
 /// An event that we can monitor or count.
@@ -62,43 +63,44 @@ c_enum! {
     /// value supported by the [`perf_event_open`][man] system call.
     ///
     /// [man]: http://man7.org/linux/man-pages/man2/perf_event_open.2.html
-    pub struct Hardware : u64 {
+    #[derive(Clone, Copy, Eq, PartialEq, Hash)]
+    pub enum Hardware : u64 {
         /// Total cycles.
-        const CPU_CYCLES = bindings::PERF_COUNT_HW_CPU_CYCLES as _;
+        CPU_CYCLES = bindings::PERF_COUNT_HW_CPU_CYCLES as _,
 
         /// Retired instructions.
-        const INSTRUCTIONS = bindings::PERF_COUNT_HW_INSTRUCTIONS as _;
+        INSTRUCTIONS = bindings::PERF_COUNT_HW_INSTRUCTIONS as _,
 
         /// Cache accesses.
-        const CACHE_REFERENCES = bindings::PERF_COUNT_HW_CACHE_REFERENCES as _;
+        CACHE_REFERENCES = bindings::PERF_COUNT_HW_CACHE_REFERENCES as _,
 
         /// Cache misses.
-        const CACHE_MISSES = bindings::PERF_COUNT_HW_CACHE_MISSES as _;
+        CACHE_MISSES = bindings::PERF_COUNT_HW_CACHE_MISSES as _,
 
         /// Retired branch instructions.
-        const BRANCH_INSTRUCTIONS = bindings::PERF_COUNT_HW_BRANCH_INSTRUCTIONS as _;
+        BRANCH_INSTRUCTIONS = bindings::PERF_COUNT_HW_BRANCH_INSTRUCTIONS as _,
 
         /// Mispredicted branch instructions.
-        const BRANCH_MISSES = bindings::PERF_COUNT_HW_BRANCH_MISSES as _;
+        BRANCH_MISSES = bindings::PERF_COUNT_HW_BRANCH_MISSES as _,
 
         /// Bus cycles.
-        const BUS_CYCLES = bindings::PERF_COUNT_HW_BUS_CYCLES as _;
+        BUS_CYCLES = bindings::PERF_COUNT_HW_BUS_CYCLES as _,
 
         /// Stalled cycles during issue.
-        const STALLED_CYCLES_FRONTEND = bindings::PERF_COUNT_HW_STALLED_CYCLES_FRONTEND as _;
+        STALLED_CYCLES_FRONTEND = bindings::PERF_COUNT_HW_STALLED_CYCLES_FRONTEND as _,
 
         /// Stalled cycles during retirement.
-        const STALLED_CYCLES_BACKEND = bindings::PERF_COUNT_HW_STALLED_CYCLES_BACKEND as _;
+        STALLED_CYCLES_BACKEND = bindings::PERF_COUNT_HW_STALLED_CYCLES_BACKEND as _,
 
         /// Total cycles, independent of frequency scaling.
-        const REF_CPU_CYCLES = bindings::PERF_COUNT_HW_REF_CPU_CYCLES as _;
+        REF_CPU_CYCLES = bindings::PERF_COUNT_HW_REF_CPU_CYCLES as _,
     }
 }
 
 impl Event for Hardware {
     fn update_attrs(self, attr: &mut bindings::perf_event_attr) {
         attr.type_ = bindings::PERF_TYPE_HARDWARE;
-        attr.config = self.0;
+        attr.config = self.into();
     }
 }
 
@@ -109,39 +111,40 @@ c_enum! {
     /// value supported by the [`perf_event_open`][man] system call.
     ///
     /// [man]: http://man7.org/linux/man-pages/man2/perf_event_open.2.html
-    pub struct Software : u64 {
+    #[derive(Clone, Copy, Eq, PartialEq, Hash)]
+    pub enum Software : u64 {
         /// High-resolution per-CPU timer.
-        const CPU_CLOCK = bindings::PERF_COUNT_SW_CPU_CLOCK as _;
+        CPU_CLOCK = bindings::PERF_COUNT_SW_CPU_CLOCK as _,
 
         /// Per-task clock count.
-        const TASK_CLOCK = bindings::PERF_COUNT_SW_TASK_CLOCK as _;
+        TASK_CLOCK = bindings::PERF_COUNT_SW_TASK_CLOCK as _,
 
         /// Page faults.
-        const PAGE_FAULTS = bindings::PERF_COUNT_SW_PAGE_FAULTS as _;
+        PAGE_FAULTS = bindings::PERF_COUNT_SW_PAGE_FAULTS as _,
 
         /// Context switches.
-        const CONTEXT_SWITCHES = bindings::PERF_COUNT_SW_CONTEXT_SWITCHES as _;
+        CONTEXT_SWITCHES = bindings::PERF_COUNT_SW_CONTEXT_SWITCHES as _,
 
         /// Process migration to another CPU.
-        const CPU_MIGRATIONS = bindings::PERF_COUNT_SW_CPU_MIGRATIONS as _;
+        CPU_MIGRATIONS = bindings::PERF_COUNT_SW_CPU_MIGRATIONS as _,
 
         /// Minor page faults: resolved without needing I/O.
-        const PAGE_FAULTS_MIN = bindings::PERF_COUNT_SW_PAGE_FAULTS_MIN as _;
+        PAGE_FAULTS_MIN = bindings::PERF_COUNT_SW_PAGE_FAULTS_MIN as _,
 
         /// Major page faults: I/O was required to resolve these.
-        const PAGE_FAULTS_MAJ = bindings::PERF_COUNT_SW_PAGE_FAULTS_MAJ as _;
+        PAGE_FAULTS_MAJ = bindings::PERF_COUNT_SW_PAGE_FAULTS_MAJ as _,
 
         /// Alignment faults that required kernel intervention.
         ///
         /// This is only generated on some CPUs, and never on x86_64 or
         /// ARM.
-        const ALIGNMENT_FAULTS = bindings::PERF_COUNT_SW_ALIGNMENT_FAULTS as _;
+        ALIGNMENT_FAULTS = bindings::PERF_COUNT_SW_ALIGNMENT_FAULTS as _,
 
         /// Instruction emulation faults.
-        const EMULATION_FAULTS = bindings::PERF_COUNT_SW_EMULATION_FAULTS as _;
+        EMULATION_FAULTS = bindings::PERF_COUNT_SW_EMULATION_FAULTS as _,
 
         /// Placeholder, for collecting informational sample records.
-        const DUMMY = bindings::PERF_COUNT_SW_DUMMY as _;
+        DUMMY = bindings::PERF_COUNT_SW_DUMMY as _,
 
         /// Special event type for streaming data from a eBPF program.
         ///
@@ -149,17 +152,17 @@ c_enum! {
         /// [`bpf-helpers(7)`] manpage for details on how to use this event type.
         ///
         /// [`bpf-helpers(7)`]: https://man7.org/linux/man-pages/man7/bpf-helpers.7.html
-        const BPF_OUTPUT = bindings::PERF_COUNT_SW_BPF_OUTPUT as _;
+        BPF_OUTPUT = bindings::PERF_COUNT_SW_BPF_OUTPUT as _,
 
         /// Context switches to a task in a different cgroup.
-        const CGROUP_SWITCHES = bindings::PERF_COUNT_SW_CGROUP_SWITCHES as _;
+        CGROUP_SWITCHES = bindings::PERF_COUNT_SW_CGROUP_SWITCHES as _,
     }
 }
 
 impl Event for Software {
     fn update_attrs(self, attr: &mut bindings::perf_event_attr) {
         attr.type_ = bindings::PERF_TYPE_SOFTWARE;
-        attr.config = self.0;
+        attr.config = self.into();
     }
 }
 

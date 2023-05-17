@@ -92,9 +92,6 @@ macro_rules! used_in_docs {
     };
 }
 
-#[macro_use]
-mod macros;
-
 pub mod events;
 
 mod builder;
