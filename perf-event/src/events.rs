@@ -18,9 +18,6 @@
 //!   read/write accesses to an address as well as execution of an instruction
 //!   address.
 //!
-//! The `Event` type is just an enum with a variant for each of the above types,
-//! which all implement `Into<Event>`.
-//!
 //! Linux supports many more kinds of events than this module covers, including
 //! events specific to particular make and model of processor, and events that
 //! are dynamically registered by drivers and kernel modules. If something you
