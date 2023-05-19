@@ -77,7 +77,6 @@
 
 #![cfg_attr(debug_assertions, warn(missing_docs))]
 #![cfg_attr(not(debug_assertions), deny(missing_docs))]
-
 // The bitflags macro is generating this lint internally.
 #![allow(clippy::assign_op_pattern)]
 
