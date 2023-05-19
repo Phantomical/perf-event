@@ -30,7 +30,9 @@ impl Probe {
     fn kprobe_type() -> io::Result<u32> {
         match KPROBE_TYPE.load(Ordering::Relaxed) {
             0 => {
-                let ty = std::fs::read_to_string("/sys/bus/event_source/device/kprobe/type")?
+                let text = std::fs::read_to_string("/sys/bus/event_source/devices/kprobe/type")?;
+                let ty = text
+                    .trim_end()
                     .parse()
                     .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
                 KPROBE_TYPE.store(ty, Ordering::Relaxed);
@@ -43,7 +45,9 @@ impl Probe {
     fn uprobe_type() -> io::Result<u32> {
         match UPROBE_TYPE.load(Ordering::Relaxed) {
             0 => {
-                let ty = std::fs::read_to_string("/sys/bus/event_source/device/uprobe/type")?
+                let text = std::fs::read_to_string("/sys/bus/event_source/devices/uprobe/type")?;
+                let ty = text
+                    .trim_end()
                     .parse()
                     .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
                 UPROBE_TYPE.store(ty, Ordering::Relaxed);
@@ -129,7 +133,7 @@ impl KProbe {
         }))
     }
 
-    fn new_generic(retprobe: bool, func: &impl AsRef<[u8]>, offset: u64) -> io::Result<Self> {
+    fn new_generic(retprobe: bool, func: impl AsRef<[u8]>, offset: u64) -> io::Result<Self> {
         let func = CString::new(func.as_ref())
             .expect("kprobe function target contained an internal nul byte");
         Self::for_function(retprobe, func, offset)
@@ -145,7 +149,7 @@ impl KProbe {
     ///
     /// # Panics
     /// Panics if `func` contains a nul byte other than at the very end.
-    pub fn probe(func: &impl AsRef<[u8]>, offset: u64) -> io::Result<Self> {
+    pub fn probe(func: impl AsRef<[u8]>, offset: u64) -> io::Result<Self> {
         Self::new_generic(false, func, offset)
     }
 
@@ -159,7 +163,7 @@ impl KProbe {
     ///
     /// # Panics
     /// Panics if `func` contains a nul byte other than at the very end.
-    pub fn retprobe(func: &impl AsRef<[u8]>, offset: u64) -> io::Result<Self> {
+    pub fn retprobe(func: impl AsRef<[u8]>, offset: u64) -> io::Result<Self> {
         Self::new_generic(true, func, offset)
     }
 }
@@ -224,7 +228,7 @@ impl UProbe {
         }))
     }
 
-    fn new_generic(retprobe: bool, path: &impl AsRef<Path>, offset: u64) -> io::Result<Self> {
+    fn new_generic(retprobe: bool, path: impl AsRef<Path>, offset: u64) -> io::Result<Self> {
         let path = CString::new(path.as_ref().as_os_str().as_bytes())
             .expect("uprobe path contained an internal nul byte");
         Self::new(retprobe, path, offset)
@@ -237,7 +241,7 @@ impl UProbe {
     /// `/sys/bus/event_source`. It will return an error if the uprobe PMU is
     /// not available or the filesystem exposed by the kernel there is otherwise
     /// unparseable.
-    pub fn probe(path: &impl AsRef<Path>, offset: u64) -> io::Result<Self> {
+    pub fn probe(path: impl AsRef<Path>, offset: u64) -> io::Result<Self> {
         Self::new_generic(false, path, offset)
     }
 
@@ -248,7 +252,7 @@ impl UProbe {
     /// `/sys/bus/event_source`. It will return an error if the uprobe PMU is
     /// not available or the filesystem exposed by the kernel there is otherwise
     /// unparseable.
-    pub fn retprobe(path: &impl AsRef<Path>, offset: u64) -> io::Result<Self> {
+    pub fn retprobe(path: impl AsRef<Path>, offset: u64) -> io::Result<Self> {
         Self::new_generic(true, path, offset)
     }
 }
