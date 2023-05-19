@@ -38,7 +38,7 @@ impl Probe {
                 KPROBE_TYPE.store(ty, Ordering::Relaxed);
                 Ok(ty)
             }
-            ty => return Ok(ty),
+            ty => Ok(ty),
         }
     }
 
@@ -53,7 +53,7 @@ impl Probe {
                 UPROBE_TYPE.store(ty, Ordering::Relaxed);
                 Ok(ty)
             }
-            ty => return Ok(ty),
+            ty => Ok(ty),
         }
     }
 }
