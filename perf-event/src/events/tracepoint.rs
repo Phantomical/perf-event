@@ -1,5 +1,6 @@
-use std::io;
+use std::num::ParseIntError;
 use std::path::{Path, PathBuf};
+use std::{fmt, io};
 
 use perf_event_open_sys::bindings;
 
@@ -60,8 +61,11 @@ impl Tracepoint {
         path.push("id");
 
         let id = std::fs::read_to_string(&path)?
+            .trim_end()
             .parse()
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+            .map_err(move |e| {
+                io::Error::new(io::ErrorKind::Other, UnparseableIdFile::new(path, e))
+            })?;
 
         Ok(Self::with_id(id))
     }
@@ -76,5 +80,32 @@ impl Event for Tracepoint {
     fn update_attrs(self, attr: &mut bindings::perf_event_attr) {
         attr.type_ = bindings::PERF_TYPE_TRACEPOINT;
         attr.config = self.id;
+    }
+}
+
+#[derive(Debug)]
+struct UnparseableIdFile {
+    path: PathBuf,
+    source: ParseIntError,
+}
+
+impl UnparseableIdFile {
+    fn new(path: PathBuf, source: ParseIntError) -> Self {
+        Self { path, source }
+    }
+}
+
+impl fmt::Display for UnparseableIdFile {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_fmt(format_args!(
+            "unparseable tracepoint id file `{}`",
+            self.path.display()
+        ))
+    }
+}
+
+impl std::error::Error for UnparseableIdFile {
+    fn cause(&self) -> Option<&dyn std::error::Error> {
+        Some(&self.source)
     }
 }
