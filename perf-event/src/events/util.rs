@@ -1,8 +1,7 @@
-use std::fmt;
-use std::io;
 use std::num::ParseIntError;
 use std::path::Path;
 use std::sync::atomic::{AtomicU32, Ordering};
+use std::{fmt, io};
 
 /// Helper to read and cache the type of a dynamic perf PMU event.
 ///
