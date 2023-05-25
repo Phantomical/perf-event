@@ -18,9 +18,9 @@ This crate provides:
 All functions are direct, `unsafe` wrappers for the underlying calls. They
 operate on raw pointers and raw file descriptors.
 
-For a type-safe API for basic functionality, see the [perf-event] crate.
+For a type-safe API for basic functionality, see the [perf-event2] crate.
 
-[perf-event]: https://crates.io/crates/perf-event
+[perf-event2]: https://crates.io/crates/perf-event2
 
 ### Using perf types on other platforms
 
