@@ -1,5 +1,4 @@
-use crate::Builder;
-use crate::ReadFormat;
+use crate::{Builder, ReadFormat};
 
 used_in_docs!(Builder);
 

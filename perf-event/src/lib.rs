@@ -144,11 +144,10 @@ pub use perf_event_data as data;
 // ... separate public exports and non-public ones
 
 use std::convert::TryInto;
-use std::fmt;
 use std::fs::File;
-use std::io;
 use std::os::fd::{AsRawFd, IntoRawFd, RawFd};
 use std::time::Duration;
+use std::{fmt, io};
 
 use crate::data::endian::Native;
 use crate::data::parse::ParseConfig;
