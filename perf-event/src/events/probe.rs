@@ -2,16 +2,13 @@ use perf_event_open_sys::bindings::perf_event_attr;
 use std::ffi::CString;
 use std::os::unix::ffi::OsStrExt;
 use std::path::Path;
-use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
 use std::{fmt, io};
 
-use crate::events::{Event, EventData};
+use crate::events::{CachedPmuType, Event, EventData};
 
-// 0 will never be the PMU value for kprobe or uprobe.
-// We use it as a flag value to indicate that this has not been initialized.
-static KPROBE_TYPE: AtomicU32 = AtomicU32::new(0);
-static UPROBE_TYPE: AtomicU32 = AtomicU32::new(0);
+static KPROBE_TYPE: CachedPmuType = CachedPmuType::new("kprobe");
+static UPROBE_TYPE: CachedPmuType = CachedPmuType::new("uprobe");
 
 #[derive(Clone, Debug)]
 enum ProbeTarget {
@@ -24,38 +21,6 @@ struct Probe {
     ty: u32,
     retprobe: bool,
     target: ProbeTarget,
-}
-
-impl Probe {
-    fn kprobe_type() -> io::Result<u32> {
-        match KPROBE_TYPE.load(Ordering::Relaxed) {
-            0 => {
-                let text = std::fs::read_to_string("/sys/bus/event_source/devices/kprobe/type")?;
-                let ty = text
-                    .trim_end()
-                    .parse()
-                    .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
-                KPROBE_TYPE.store(ty, Ordering::Relaxed);
-                Ok(ty)
-            }
-            ty => Ok(ty),
-        }
-    }
-
-    fn uprobe_type() -> io::Result<u32> {
-        match UPROBE_TYPE.load(Ordering::Relaxed) {
-            0 => {
-                let text = std::fs::read_to_string("/sys/bus/event_source/devices/uprobe/type")?;
-                let ty = text
-                    .trim_end()
-                    .parse()
-                    .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
-                UPROBE_TYPE.store(ty, Ordering::Relaxed);
-                Ok(ty)
-            }
-            ty => Ok(ty),
-        }
-    }
 }
 
 impl Event for Probe {
@@ -112,7 +77,7 @@ impl KProbe {
     /// unparseable.
     pub fn for_function(retprobe: bool, func: CString, offset: u64) -> io::Result<Self> {
         Ok(Self(Probe {
-            ty: Probe::kprobe_type()?,
+            ty: KPROBE_TYPE.get()?,
             retprobe,
             target: ProbeTarget::Func { name: func, offset },
         }))
@@ -127,7 +92,7 @@ impl KProbe {
     /// unparseable.
     pub fn for_addr(retprobe: bool, addr: u64) -> io::Result<Self> {
         Ok(Self(Probe {
-            ty: Probe::kprobe_type()?,
+            ty: UPROBE_TYPE.get()?,
             retprobe,
             target: ProbeTarget::Addr(addr),
         }))
@@ -222,7 +187,7 @@ impl UProbe {
     /// unparseable.
     pub fn new(retprobe: bool, path: CString, offset: u64) -> io::Result<Self> {
         Ok(Self(Probe {
-            ty: Probe::uprobe_type()?,
+            ty: UPROBE_TYPE.get()?,
             retprobe,
             target: ProbeTarget::Func { name: path, offset },
         }))
