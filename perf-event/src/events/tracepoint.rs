@@ -49,6 +49,7 @@ impl Tracepoint {
     /// # Example
     /// Create a tracepoint event for the `sched_switch` tracepoint.
     /// ```
+    /// # use perf_event::events::Tracepoint;
     /// # fn run() -> std::io::Result<()> {
     /// let tracepoint = Tracepoint::with_name("sched/sched_switch")?;
     /// # Ok(())
