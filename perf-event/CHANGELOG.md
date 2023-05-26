@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- Introduce a new `x86::Msr` event type to expose the perf-event msr PMU.
+- Introduce a new `x86::Msr` event type to expose the perf-event msr PMU. @yangxi
 
 ## [0.6.1] - 2023-05-19
 ### Added
