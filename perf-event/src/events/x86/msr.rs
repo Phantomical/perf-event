@@ -62,7 +62,7 @@ c_enum! {
         MPERF = 0x2,
 
         /// Productive Performance Counter (`MSR_PPERF`).
-        /// 
+        ///
         /// This counter is similar to `APERF` but only counts cycles perceived
         /// by the hardware as contributing to instruction execution (i.e. not
         /// halted and not stalled). This counter increments at teh same rate
@@ -73,36 +73,36 @@ c_enum! {
         PPERF = 0x3,
 
         /// System Management Interrupt Counter (`MSR_SMI_COUNT`).
-        /// 
+        ///
         /// This counter counts the number of System Management Interrupts.
-        /// 
+        ///
         /// Only available on Intel CPUs.
         SMI = 0x4,
 
         /// Performance Timestamp Counter (`MSR_F15H_PTSC`).
-        /// 
+        ///
         /// This is a free-running counter that increments at a constant rate
         /// of 100MHz and is synchronized across all cores in a node to within
         /// +/-1.
-        /// 
+        ///
         /// This counter is only available on AMD CPUs.
         PTSC = 0x5,
 
         /// Instructions Retired Performance Counter (`MSR_F17H_IRPERF`)
-        /// 
+        ///
         /// This is a dedicated counter that always counts the number of
         /// instructions retired.
-        /// 
+        ///
         /// This counter is only available on AMD CPUs.
         IRPERF = 0x6,
 
         /// Thermal Monitor Status (MSR_IA32_THERM_STATUS).
-        /// 
+        ///
         /// This MSR provides status information about the thermal status of
         /// the current CPU core. It contains quite a bit of info so see the
         /// Intel SDM, Volume 3, section 15.8.2.5, for documentation on what
         /// it contains.
-        /// 
+        ///
         /// This counter is only available on Intel CPUs.
         THERM = 0x7,
     }
