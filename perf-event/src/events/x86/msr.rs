@@ -3,7 +3,7 @@ use std::io;
 use c_enum::c_enum;
 use perf_event_open_sys::bindings;
 
-use crate::events::{Event, CachedPmuType};
+use crate::events::{CachedPmuType, Event};
 
 static MSR_TYPE: CachedPmuType = CachedPmuType::new("msr");
 
@@ -60,7 +60,7 @@ impl Msr {
     pub fn new(config: MsrId) -> io::Result<Self> {
         Ok(Self {
             ty: MSR_TYPE.get()?,
-            config
+            config,
         })
     }
 }
