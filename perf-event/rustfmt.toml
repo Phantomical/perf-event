@@ -2,3 +2,5 @@
 format_code_in_doc_comments = true
 format_macro_bodies = true
 wrap_comments = true
+
+imports_granularity = "Module"

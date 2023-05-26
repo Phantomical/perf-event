@@ -36,6 +36,7 @@ use std::sync::Arc;
 
 use perf_event_open_sys::bindings::perf_event_attr;
 
+use crate::events::util::CachedPmuType;
 use crate::{Builder, Counter};
 
 used_in_docs!(Counter);
@@ -49,6 +50,7 @@ mod hardware;
 mod probe;
 mod software;
 mod tracepoint;
+mod util;
 
 pub use self::breakpoint::{Breakpoint, BreakpointAccess};
 pub use self::cache::{Cache, CacheId, CacheOp, CacheResult};
