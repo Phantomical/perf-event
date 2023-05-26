@@ -2,4 +2,4 @@
 
 mod msr;
 
-pub use self::msr::{MSRConfig, MSREvent};
+pub use self::msr::{Msr, MsrId};

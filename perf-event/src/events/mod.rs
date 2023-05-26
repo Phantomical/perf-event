@@ -41,6 +41,8 @@ use crate::{Builder, Counter};
 used_in_docs!(Counter);
 used_in_docs!(Builder);
 
+pub mod x86;
+
 mod breakpoint;
 mod cache;
 mod hardware;
