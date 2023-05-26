@@ -14,9 +14,6 @@
 //! - [`Software`] events are counted by the kernel. This includes things like
 //!   context switches, page faults, and so on.
 //!
-//! - [`Msr`] events are counted by the processor MSRs including timestmap
-//!   counter, aperf, mperf MSRs.
-//!
 //! - [`Breakpoint`] events correspond to hardware breakpoints. They can count
 //!   read/write accesses to an address as well as execution of an instruction
 //!   address.
@@ -26,11 +23,6 @@
 //! are dynamically registered by drivers and kernel modules. If something you
 //! want is missing, think about the best API to expose it, and submit a pull
 //! request!
-//!
-//! [`Hardware`]: enum.Hardware.html
-//! [`Software`]: enum.Software.html
-//! [`Cache`]: struct.Cache.html
-//! [`Msr`]: struct.Msr.html
 
 use std::sync::Arc;
 
