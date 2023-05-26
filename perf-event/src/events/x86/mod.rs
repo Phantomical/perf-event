@@ -1,3 +1,5 @@
 //! Events specific to x86 CPUs.
 
-pub mod intel;
+mod msr;
+
+pub use self::msr::{Msr, MsrId};

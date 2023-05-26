@@ -1,12 +1,11 @@
-use crate::events::Event;
+use std::io;
+
 use c_enum::c_enum;
 use perf_event_open_sys::bindings;
-use std::io;
-use std::sync::atomic::{AtomicU32, Ordering};
 
-// 0 will never be the PMU value for msr.
-// We use it as a flag value to indicate that this has not been initialized.
-static MSR_TYPE: AtomicU32 = AtomicU32::new(0);
+use crate::events::{Event, CachedPmuType};
+
+static MSR_TYPE: CachedPmuType = CachedPmuType::new("msr");
 
 c_enum! {
     /// The [MSRs] supported by the [Linux msr pmu]
@@ -59,18 +58,10 @@ impl Msr {
     /// `/sys/bus/event_source`. It will return an error if the MSR PMU is
     /// missing.
     pub fn new(config: MsrId) -> io::Result<Self> {
-        match MSR_TYPE.load(Ordering::Relaxed) {
-            0 => {
-                let text = std::fs::read_to_string("/sys/bus/event_source/devices/msr/type")?;
-                let ty = text
-                    .trim_end()
-                    .parse()
-                    .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
-                MSR_TYPE.store(ty, Ordering::Relaxed);
-                Ok(Self { ty, config })
-            }
-            ty => return Ok(Self { ty, config }),
-        }
+        Ok(Self {
+            ty: MSR_TYPE.get()?,
+            config
+        })
     }
 }
 

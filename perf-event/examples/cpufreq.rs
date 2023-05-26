@@ -1,7 +1,7 @@
 use std::process::ExitCode;
 use std::time::Duration;
 
-use perf_event::events::x86::intel::{Msr, MsrId};
+use perf_event::events::x86::{Msr, MsrId};
 use perf_event::Builder;
 
 fn run() -> std::io::Result<()> {
