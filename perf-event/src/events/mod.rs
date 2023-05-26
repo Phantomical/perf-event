@@ -14,6 +14,9 @@
 //! - [`Software`] events are counted by the kernel. This includes things like
 //!   context switches, page faults, and so on.
 //!
+//! - [`Msr`] events are counted by the processor MSRs including timestmap
+//!   counter, aperf, mperf MSRs.
+//!
 //! - [`Breakpoint`] events correspond to hardware breakpoints. They can count
 //!   read/write accesses to an address as well as execution of an instruction
 //!   address.
@@ -27,6 +30,7 @@
 //! [`Hardware`]: enum.Hardware.html
 //! [`Software`]: enum.Software.html
 //! [`Cache`]: struct.Cache.html
+//! [`Msr`]: struct.Msr.html
 
 use std::sync::Arc;
 
@@ -48,8 +52,8 @@ mod tracepoint;
 pub use self::breakpoint::{Breakpoint, BreakpointAccess};
 pub use self::cache::{Cache, CacheId, CacheOp, CacheResult};
 pub use self::hardware::Hardware;
-pub use self::msr::MSRConfig;
-pub use self::msr::MSREvent;
+pub use self::msr::Msr;
+pub use self::msr::MsrId;
 pub use self::probe::{KProbe, UProbe};
 pub use self::software::Software;
 pub use self::tracepoint::Tracepoint;

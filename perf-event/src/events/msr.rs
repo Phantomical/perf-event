@@ -8,41 +8,57 @@ use std::sync::atomic::{AtomicU32, Ordering};
 // We use it as a flag value to indicate that this has not been initialized.
 static MSR_TYPE: AtomicU32 = AtomicU32::new(0);
 
-
 c_enum! {
-    /// MSR events on all x86 CPUs
+    /// The [MSRs] supported by the [Linux msr pmu]
+    ///
+    /// [Linux msr pmu]: https://github.com/torvalds/linux/blob/master/arch/x86/events/msr.c
+    /// [MSRs]: https://github.com/torvalds/linux/blob/master/arch/x86/include/asm/msr-index.h
     #[derive(Clone, Copy, Eq, PartialEq, Hash)]
-    pub enum MSRConfig: u64 {
-        /// Time Stamp Counter
-        /// TSC increases at the CPU base frequency.
+    pub enum MsrId: u64 {
+        /// x86 Time Stamp Counter (MSR_IA32_TSC).
         TSC = 0x0,
-        /// Actual Performance Frequency Clock Count
+        /// x86 Actual Performance Frequency Clock (MSR_IA32_APERF).
         APERF = 0x1,
-        /// Maximum Performance Frequency Clock Count
-        /// (APERF / MPERF) * CPU_BASE_FREQUENCY is the running CPU frequency
+        /// x86 Maximum Performance Frequency Clock Count (MSR_IA32_MPERF)
+        ///
+        /// (APERF / MPERF) * CPU base frequency = running CPU frequency
         MPERF = 0x2,
+        /// Intel The Productive Performance MSR (MSR_PPERF).
+        ///
+        /// PPERF is similar to APERF but only increased for non-halted cycles.
+        PPERF = 0x3,
+        /// Intel System Management Interrupt Counter (MSR_SMI_COUNT).
+        SMI = 0x4,
+        /// AMD Performance Timestamp Counter (MSR_F15H_PTSC).
+        PTSC = 0x5,
+        /// AMD Instructions Retired Performance Counter (MSR_F17H_IRPERF)
+        IRPERF = 0x6,
+        /// Intel Thermal Status MSR (MSR_IA32_THERM_STATUS).
+        THERM = 0x7,
     }
 }
 
-/// MSR event
-/// 
-/// MSR event allow you to read the per-CPU x86 MSR counters. The MSR event might not exist on non-x86 CPUs
-/// and the type of the pmu is dynamic, so MSREvent::with_config searches /sys/fs/event_source/devices/msr/type
-/// checking whether it exists and fetching the run-time type value.
-pub struct MSREvent {
+/// The MSR event allowing you to use the MSRs defined in the [Linux msr pmu].
+///
+/// [Linux msr pmu]: https://github.com/torvalds/linux/blob/master/arch/x86/events/msr.c
+pub struct Msr {
     ty: u32,
-    config: MSRConfig,
+    config: MsrId,
 }
 
-impl MSREvent {
+impl Msr {
     /// Create a MSR event.
+    ///
+    /// Please notice that because MSR events don't support user-only counting,
+    /// please clear the kernel and hv exclusive bits by calling
+    /// [exclude_kernel](crate::Builder::exclude_hv)(`false`) and
+    /// [exclude_kernel](crate::Builder::exclude_kernel)(`false`).
     ///
     /// # Errors
     /// This will attempt to read the PMU type from
-    /// `/sys/bus/event_source`. It will return an error if the MSR PMU is missing.
-    /// Please notice that because MSR events don't support user-only counting, please clear the kernel and
-    /// hv exclusive bits by calling exclude_hv(false) exclude_kernel(false)
-    pub fn with_config(config: MSRConfig) -> io::Result<Self> {
+    /// `/sys/bus/event_source`. It will return an error if the MSR PMU is
+    /// missing.
+    pub fn new(config: MsrId) -> io::Result<Self> {
         match MSR_TYPE.load(Ordering::Relaxed) {
             0 => {
                 let text = std::fs::read_to_string("/sys/bus/event_source/devices/msr/type")?;
@@ -51,16 +67,14 @@ impl MSREvent {
                     .parse()
                     .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
                 MSR_TYPE.store(ty, Ordering::Relaxed);
-                return Ok(Self { ty, config });
+                Ok(Self { ty, config })
             }
-            ty => {
-                return Ok(Self { ty, config });
-            }
-        };
+            ty => return Ok(Self { ty, config }),
+        }
     }
 }
 
-impl Event for MSREvent {
+impl Event for Msr {
     fn update_attrs(self, attr: &mut bindings::perf_event_attr) {
         attr.type_ = self.ty;
         attr.config = self.config.into();
