@@ -40,14 +40,13 @@ fn run() -> std::io::Result<()> {
     let run_freq = ghz * ratio;
 
     println!(
-        "{tsc_val} ref cycles passed in one second (~{ghz} GHz)\n\
+        "{tsc_val} ref cycles passed in one second ({ghz:.3} GHz)\n\
         APERF: {aperf_val}\n\
         MPERF: {mperf_val}\n\
-        Ratio: {ratio}\n\
-        Running Frequency: {run_freq} GHz"
+        Ratio: {ratio:.4}\n\
+        Running Frequency: {run_freq:.3} GHz"
     );
 
-    println!("{tsc_val} ref cycles passed in one second (~{ghz} GHz)\nAPERF: {aperf_val} MPERF: {mperf_val} Ratio: {ratio} Running frequency:{run_freq} GHz");
     Ok(())
 }
 
