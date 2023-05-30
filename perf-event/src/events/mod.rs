@@ -38,14 +38,21 @@ pub mod x86;
 
 mod breakpoint;
 mod cache;
+mod dynamic;
 mod hardware;
 mod probe;
 mod software;
 mod tracepoint;
 mod util;
 
+/// Non-io errors emitted when constructing events.
+pub mod error {
+    pub use crate::events::dynamic::{DynamicBuilderError, MissingParameterError};
+}
+
 pub use self::breakpoint::{Breakpoint, BreakpointAccess};
 pub use self::cache::{Cache, CacheId, CacheOp, CacheResult};
+pub use self::dynamic::{Dynamic, DynamicBuilder};
 pub use self::hardware::Hardware;
 pub use self::probe::{KProbe, UProbe};
 pub use self::software::Software;
