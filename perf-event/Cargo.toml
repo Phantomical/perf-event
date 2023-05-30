@@ -34,3 +34,4 @@ version = "5.0"
 
 [dev-dependencies]
 nix = { version = "0.26.1", features = ["process", "feature"] }
+anyhow = "1.0"
