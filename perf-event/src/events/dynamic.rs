@@ -429,7 +429,7 @@ impl DynamicBuilder {
             (path, Some(content)) => (path, content),
         };
 
-        let scale: f64 = match content.parse() {
+        let scale: f64 = match content.trim().parse() {
             Ok(scale) => scale,
             Err(e) => return Err(Error::parse_float(path, e))?,
         };
