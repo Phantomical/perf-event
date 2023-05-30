@@ -239,7 +239,7 @@ impl DynamicBuilder {
                 _ => return Err(Error::unknown_target(entry.path(), name.to_owned()))?,
             };
 
-            let bits = if let Some((first, rest)) = rest.split_once("-") {
+            let bits = if let Some((first, rest)) = rest.split_once('-') {
                 let lo: u32 = first.parse().map_err(|e| Error::parse(entry.path(), e))?;
                 let hi: u32 = rest
                     .trim_end()
@@ -719,7 +719,7 @@ mod tests {
     #[test]
     fn dynamic_pmu_evt1() {
         let pmu = test_pmu_dir().join("dyn-pmu");
-        let mut builder = Dynamic::builder(&pmu).unwrap();
+        let mut builder = Dynamic::builder(pmu).unwrap();
         builder.event("evt1").unwrap();
 
         let fields: HashMap<_, _> = HashMap::from_iter(builder.fields());
@@ -745,7 +745,7 @@ mod tests {
     #[test]
     fn dynamic_pmu_evt2() {
         let pmu = test_pmu_dir().join("dyn-pmu");
-        let mut builder = Dynamic::builder(&pmu).unwrap();
+        let mut builder = Dynamic::builder(pmu).unwrap();
         builder.event("evt2").unwrap();
 
         let fields: HashMap<_, _> = HashMap::from_iter(builder.fields());
@@ -766,7 +766,7 @@ mod tests {
     #[test]
     fn dynamic_pmu_empty() {
         let pmu = test_pmu_dir().join("dyn-pmu");
-        let builder = Dynamic::builder(&pmu).unwrap();
+        let builder = Dynamic::builder(pmu).unwrap();
 
         let fields: HashMap<_, _> = HashMap::from_iter(builder.fields());
         assert_eq!(fields["param"], None);
