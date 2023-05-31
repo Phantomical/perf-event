@@ -59,6 +59,23 @@ impl Sampler {
         Self { counter, mmap }
     }
 
+    /// Convert this sampler back into a counter.
+    ///
+    /// This will close the ringbuffer associated with the sampler.
+    pub fn into_counter(self) -> Counter {
+        self.counter
+    }
+
+    /// Access the underlying counter for this sampler.
+    pub fn as_counter(&self) -> &Counter {
+        &self.counter
+    }
+
+    /// Mutably access the underlying counter for this sampler.
+    pub fn as_counter_mut(&mut self) -> &mut Counter {
+        &mut self.counter
+    }
+
     /// Read the next record from the ring buffer.
     ///
     /// This method does not block. If you want blocking behaviour, use
@@ -204,23 +221,6 @@ impl Sampler {
                 },
             }
         }
-    }
-
-    /// Convert this sampler back into a counter.
-    ///
-    /// This will close the ringbuffer associated with the sampler.
-    pub fn into_counter(self) -> Counter {
-        self.counter
-    }
-
-    /// Access the underlying counter for this sampler.
-    pub fn as_counter(&self) -> &Counter {
-        &self.counter
-    }
-
-    /// Mutably access the underlying counter for this sampler.
-    pub fn as_counter_mut(&mut self) -> &mut Counter {
-        &mut self.counter
     }
 
     fn page(&self) -> *const perf_event_mmap_page {
