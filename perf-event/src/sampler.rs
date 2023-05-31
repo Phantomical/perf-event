@@ -2,7 +2,7 @@ use std::borrow::Cow;
 use std::convert::{AsMut, AsRef};
 use std::ops::{Deref, DerefMut};
 use std::os::unix::io::{AsRawFd, IntoRawFd, RawFd};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicU64, Ordering, AtomicU32};
 use std::time::{Duration, Instant};
 
 use data::parse::Parser;
@@ -455,13 +455,67 @@ unsafe impl<'a> ParseBuf<'a> for ByteBuffer<'a> {
     }
 }
 
+macro_rules! assert_same_size {
+    ($a:ty, $b:ty) => {{
+        if false {
+            let _assert_same_size: [u8; ::std::mem::size_of::<$b>()] = [0u8; ::std::mem::size_of::<$a>()];
+        }
+
+        ()
+    }};
+}
+
+trait Atomic: Sized + Copy {
+    type Atomic;
+
+    unsafe fn store(ptr: *const Self, val: Self, order: Ordering);
+    unsafe fn load(ptr: *const Self, order: Ordering) -> Self;
+}
+
+impl Atomic for u64 {
+    type Atomic = AtomicU64;
+
+    unsafe fn store(ptr: *const Self, val: Self, order: Ordering) {
+        assert_same_size!(Self, Self::Atomic);
+
+        let ptr = ptr as *const Self::Atomic;
+        (*ptr).store(val, order)
+    }
+
+    unsafe fn load(ptr: *const Self, order: Ordering) -> Self {
+        assert_same_size!(Self, Self::Atomic);
+
+        let ptr = ptr as *const Self::Atomic;
+        (*ptr).load(order)
+    }
+}
+
+impl Atomic for u32 {
+    type Atomic = AtomicU32;
+
+    unsafe fn store(ptr: *const Self, val: Self, order: Ordering) {
+        assert_same_size!(Self, Self::Atomic);
+
+        let ptr = ptr as *const Self::Atomic;
+        (*ptr).store(val, order)
+    }
+
+    unsafe fn load(ptr: *const Self, order: Ordering) -> Self {
+        assert_same_size!(Self, Self::Atomic);
+
+        let ptr = ptr as *const Self::Atomic;
+        (*ptr).load(order)
+    }
+}
+
+
 /// Do an atomic write to the value stored at `ptr`.
 ///
 /// # Safety
 /// - `ptr` must be valid for writes.
 /// - `ptr` must be properly aligned.
-unsafe fn atomic_store(ptr: *const u64, val: u64, order: Ordering) {
-    (*(ptr as *const AtomicU64)).store(val, order)
+unsafe fn atomic_store<T: Atomic>(ptr: *const T, val: T, order: Ordering) {
+    T::store(ptr, val, order)
 }
 
 /// Perform an atomic read from the value stored at `ptr`.
@@ -469,8 +523,8 @@ unsafe fn atomic_store(ptr: *const u64, val: u64, order: Ordering) {
 /// # Safety
 /// - `ptr` must be valid for reads.
 /// - `ptr` must be properly aligned.
-unsafe fn atomic_load(ptr: *const u64, order: Ordering) -> u64 {
-    (*(ptr as *const AtomicU64)).load(order)
+unsafe fn atomic_load<T: Atomic>(ptr: *const T, order: Ordering) -> T {
+    T::load(ptr, order)
 }
 
 #[cfg(test)]
