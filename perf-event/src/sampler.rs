@@ -2,14 +2,18 @@ use std::borrow::Cow;
 use std::convert::{AsMut, AsRef};
 use std::ops::{Deref, DerefMut};
 use std::os::unix::io::{AsRawFd, IntoRawFd, RawFd};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::Ordering;
 use std::time::{Duration, Instant};
 
-use data::parse::Parser;
-
-use crate::data::parse::{ParseBuf, ParseBufChunk, ParseError, ParseResult};
-use crate::sys::bindings::{perf_event_header, perf_event_mmap_page};
+use crate::data::parse::{ParseBuf, ParseBufChunk, ParseError, ParseResult, Parser};
+use crate::events::Hardware;
+use crate::sys::bindings::{
+    __BindgenBitfieldUnit, perf_event_header, perf_event_mmap_page,
+    perf_event_mmap_page__bindgen_ty_1__bindgen_ty_1 as MmapPageFlags,
+};
 use crate::{check_errno_syscall, data, Counter};
+
+used_in_docs!(Hardware);
 
 /// A sampled perf event.
 ///
@@ -57,6 +61,23 @@ impl Sampler {
         assert!(!mmap.as_ptr().is_null());
 
         Self { counter, mmap }
+    }
+
+    /// Convert this sampler back into a counter.
+    ///
+    /// This will close the ringbuffer associated with the sampler.
+    pub fn into_counter(self) -> Counter {
+        self.counter
+    }
+
+    /// Access the underlying counter for this sampler.
+    pub fn as_counter(&self) -> &Counter {
+        &self.counter
+    }
+
+    /// Mutably access the underlying counter for this sampler.
+    pub fn as_counter_mut(&mut self) -> &mut Counter {
+        &mut self.counter
     }
 
     /// Read the next record from the ring buffer.
@@ -206,21 +227,74 @@ impl Sampler {
         }
     }
 
-    /// Convert this sampler back into a counter.
+    /// Read the value of this counter directly from userspace.
     ///
-    /// This will close the ringbuffer associated with the sampler.
-    pub fn into_counter(self) -> Counter {
-        self.counter
-    }
+    /// Some CPU architectures allow performance counters to be read directly
+    /// from userspace without having to go through the kernel. This can be much
+    /// faster than a normal counter read but the tradeoff is that can only be
+    /// done under certain conditions.
+    ///
+    /// This method allows you to read the counter value, `time_enabled`, and
+    /// `time_running` without going through the kernel, if allowed by the
+    /// combination of architecture, kernel, and counter. `time_enabled` and
+    /// `time_running` are always read but will be less accurate on
+    /// architectures that do not provide a timestamp counter readable from
+    /// userspace.
+    ///
+    /// # Restrictions
+    /// In order for counter values to be read using this method the following
+    /// must be true:
+    /// - the CPU architecture must support reading counters from userspace,
+    /// - the counter must be recording for the current process,
+    /// - perf-event2 must have support for the relevant CPU architecture, and,
+    /// - the counter must correspond to a hardware counter.
+    ///
+    /// Note that, despite the above being true, the kernel may still not
+    /// support userspace reads for other reasons. [`Hardware`] events should
+    /// usually be supported but anything beyond that is unlikely. See the
+    /// supported architectures table below to see which are supported by
+    /// perf-event2.
+    ///
+    /// Accurate timestamps also require that the kernel, CPU, and perf-event2
+    /// support them. They have similar restrictions to counter reads and will
+    /// just return the base values set by the kernel otherwise. These will may
+    /// be somewhat accurate but are likely to be out-of-date.
+    ///
+    /// # Supported Architectures
+    /// | Architecture | Counter Read | Timestamp Read |
+    /// |--------------|--------------|----------------|
+    /// |  x86/x86_64  | yes          | yes            |
+    ///
+    /// If you would like to add support for a new architecture here please
+    /// submit a PR!
+    pub fn read_user(&self) -> UserReadData {
+        #[cfg(target_arch = "x86")]
+        use std::arch::x86::_rdtsc;
+        #[cfg(target_arch = "x86_64")]
+        use std::arch::x86_64::_rdtsc;
 
-    /// Access the underlying counter for this sampler.
-    pub fn as_counter(&self) -> &Counter {
-        &self.counter
-    }
+        loop {
+            let mut data = unsafe { PmcReadData::new(self.page()) };
 
-    /// Mutably access the underlying counter for this sampler.
-    pub fn as_counter_mut(&mut self) -> &mut Counter {
-        &mut self.counter
+            if let Some(index) = data.index() {
+                // SAFETY:
+                // - index was handed to us by the kernel so it is safe to use.
+                // - cap_user_rdpmc will only be set if it is valid to call rdpmc from
+                //   userspace.
+                #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+                data.with_pmc(unsafe { rdpmc(index) });
+            }
+
+            if data.cap_user_time() {
+                // SAFETY: it is always safe to run rdtsc on x86
+                #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+                data.with_tsc(unsafe { _rdtsc() });
+            }
+
+            if let Some(data) = data.finish() {
+                return data;
+            }
+        }
     }
 
     fn page(&self) -> *const perf_event_mmap_page {
@@ -263,6 +337,208 @@ impl AsRawFd for Sampler {
 impl IntoRawFd for Sampler {
     fn into_raw_fd(self) -> RawFd {
         self.counter.into_raw_fd()
+    }
+}
+
+// This is meant to roughly be the equivalent of the kernel READ_ONCE
+// macro. The closest equivalent in Rust (and, I think, the only one
+// that avoids UB) is to do a relaxed atomic load.
+//
+// On x86 this translates to just a load from memory and it is still
+// marked as an atomic for the compiler.
+macro_rules! read_once {
+    ($place:expr) => {
+        atomic_load(::std::ptr::addr_of!($place), Ordering::Relaxed)
+    };
+}
+
+// This is meant to be the equivalent of the kernel barrier macro. It prevents
+// the compiler from reordering any memory accesses accross the barrier.
+macro_rules! barrier {
+    () => {
+        std::sync::atomic::compiler_fence(Ordering::SeqCst)
+    };
+}
+
+/// Helper for writing a `read_user` variant.
+struct PmcReadData {
+    page: *const perf_event_mmap_page,
+    seq: u32,
+    flags: MmapPageFlags,
+    enabled: u64,
+    running: u64,
+    index: u32,
+    count: i64,
+
+    /// There are architectures that perf supports that we don't. On those
+    /// architectures we don't want to just return the offset value from the
+    /// perf mmap page.
+    has_pmc_value: bool,
+}
+
+#[allow(dead_code)]
+impl PmcReadData {
+    /// Read the initial sequence number and other values out of the page.
+    ///
+    /// # Safety
+    /// - `page` must point to a valid instance of [`perf_event_mmap_page`]
+    /// - `page` must remain valid for the lifetime of this struct.
+    pub unsafe fn new(page: *const perf_event_mmap_page) -> Self {
+        let seq = atomic_load(std::ptr::addr_of!((*page).lock), Ordering::Acquire);
+        barrier!();
+
+        let capabilities = read_once!((*page).__bindgen_anon_1.capabilities);
+
+        Self {
+            page,
+            seq,
+            flags: {
+                let mut flags = MmapPageFlags::default();
+                flags._bitfield_1 = __BindgenBitfieldUnit::new(capabilities.to_ne_bytes());
+                flags
+            },
+            enabled: read_once!((*page).time_enabled),
+            running: read_once!((*page).time_running),
+
+            index: read_once!((*page).index),
+            count: read_once!((*page).offset),
+            has_pmc_value: false,
+        }
+    }
+
+    pub fn cap_user_rdpmc(&self) -> bool {
+        self.flags.cap_user_rdpmc() != 0
+    }
+
+    pub fn cap_user_time(&self) -> bool {
+        self.flags.cap_user_time() != 0
+    }
+
+    pub fn cap_user_time_short(&self) -> bool {
+        self.flags.cap_user_time_short() != 0
+    }
+
+    /// Get the index of the PMC counter, should there be one to read.
+    pub fn index(&self) -> Option<u32> {
+        if self.cap_user_rdpmc() && self.index != 0 {
+            Some(self.index - 1)
+        } else {
+            None
+        }
+    }
+
+    /// Update the `enabled` and `running` counts using the tsc counter.
+    ///
+    /// # Panics
+    /// Panics if `cap_user_time` is not true.
+    pub fn with_tsc(&mut self, mut cyc: u64) {
+        assert!(self.cap_user_time());
+
+        // counter is not active so enabled and running should be accurate.
+        if !self.cap_user_rdpmc() || self.index == 0 {
+            return;
+        }
+
+        let page = self.page;
+
+        let time_offset = unsafe { read_once!((*page).time_offset) };
+        let time_mult = unsafe { read_once!((*page).time_mult) };
+        let time_shift = unsafe { read_once!((*page).time_shift) };
+
+        if self.cap_user_time_short() {
+            let time_cycles = unsafe { read_once!((*page).time_cycles) };
+            let time_mask = unsafe { read_once!((*page).time_mask) };
+
+            cyc = time_cycles + ((cyc - time_cycles) & time_mask);
+        }
+
+        let time_mult = time_mult as u64;
+        let quot = cyc >> time_shift;
+        let rem = cyc & ((1u64 << time_shift) - 1);
+
+        let delta = quot * time_mult + ((rem * time_mult) >> time_shift);
+        let delta = time_offset.wrapping_add(delta);
+
+        self.enabled += delta;
+        if self.index != 0 {
+            self.running += delta;
+        }
+    }
+
+    /// Update the value of `count` using a value read from the architecture
+    /// PMC.
+    ///
+    /// # Panics
+    /// Panics if `index` return `None`.
+    pub fn with_pmc(&mut self, pmc: u64) {
+        assert!(self.index().is_some());
+
+        let Self { page, .. } = *self;
+        let width = unsafe { read_once!((*page).pmc_width) };
+
+        let mut pmc = pmc as i64;
+        pmc <<= 64 - width;
+        pmc >>= 64 - width;
+
+        self.count = self.count.wrapping_add(pmc);
+        self.has_pmc_value = true;
+    }
+
+    pub fn finish(self) -> Option<UserReadData> {
+        let page = self.page;
+        let seq = self.seq;
+
+        barrier!();
+        let nseq = unsafe { atomic_load(std::ptr::addr_of!((*page).lock), Ordering::Acquire) };
+        if nseq != seq {
+            return None;
+        }
+
+        Some(UserReadData {
+            time_enabled: self.enabled,
+            time_running: self.running,
+            value: if self.has_pmc_value {
+                Some(self.count as u64)
+            } else {
+                None
+            },
+        })
+    }
+}
+
+/// Data read from a call to [`Sampler::read_user`].
+#[derive(Copy, Clone, Debug)]
+pub struct UserReadData {
+    time_enabled: u64,
+    time_running: u64,
+    value: Option<u64>,
+}
+
+impl UserReadData {
+    /// The total time for which the counter was enabled at the time of reading.
+    ///
+    /// If the architecture and counter support it this will be cycle-accurate
+    pub fn time_enabled(&self) -> Duration {
+        Duration::from_nanos(self.time_enabled)
+    }
+
+    /// The total time for which the counter was running at the time of reading.
+    pub fn time_running(&self) -> Duration {
+        Duration::from_nanos(self.time_running)
+    }
+
+    /// The value of the counter, if it was enabled at the time.
+    pub fn count(&self) -> Option<u64> {
+        self.value
+    }
+
+    /// The value of the counter, scaled to reflect `time_enabled`.
+    pub fn scaled_count(&self) -> Option<u64> {
+        self.count().map(|count| {
+            let quot = count / self.time_running;
+            let rem = count % self.time_running;
+            quot * self.time_enabled + (rem * self.time_enabled) / self.time_running
+        })
     }
 }
 
@@ -455,13 +731,56 @@ unsafe impl<'a> ParseBuf<'a> for ByteBuffer<'a> {
     }
 }
 
+macro_rules! assert_same_size {
+    ($a:ty, $b:ty) => {{
+        if false {
+            let _assert_same_size: [u8; ::std::mem::size_of::<$b>()] =
+                [0u8; ::std::mem::size_of::<$a>()];
+        }
+    }};
+}
+
+trait Atomic: Sized + Copy {
+    type Atomic;
+
+    unsafe fn store(ptr: *const Self, val: Self, order: Ordering);
+    unsafe fn load(ptr: *const Self, order: Ordering) -> Self;
+}
+
+macro_rules! impl_atomic {
+    ($base:ty, $atomic:ty) => {
+        impl Atomic for $base {
+            type Atomic = $atomic;
+
+            unsafe fn store(ptr: *const Self, val: Self, order: Ordering) {
+                assert_same_size!(Self, Self::Atomic);
+
+                let ptr = ptr as *const Self::Atomic;
+                (*ptr).store(val, order)
+            }
+
+            unsafe fn load(ptr: *const Self, order: Ordering) -> Self {
+                assert_same_size!(Self, Self::Atomic);
+
+                let ptr = ptr as *const Self::Atomic;
+                (*ptr).load(order)
+            }
+        }
+    };
+}
+
+impl_atomic!(u64, std::sync::atomic::AtomicU64);
+impl_atomic!(u32, std::sync::atomic::AtomicU32);
+impl_atomic!(u16, std::sync::atomic::AtomicU16);
+impl_atomic!(i64, std::sync::atomic::AtomicI64);
+
 /// Do an atomic write to the value stored at `ptr`.
 ///
 /// # Safety
 /// - `ptr` must be valid for writes.
 /// - `ptr` must be properly aligned.
-unsafe fn atomic_store(ptr: *const u64, val: u64, order: Ordering) {
-    (*(ptr as *const AtomicU64)).store(val, order)
+unsafe fn atomic_store<T: Atomic>(ptr: *const T, val: T, order: Ordering) {
+    T::store(ptr, val, order)
 }
 
 /// Perform an atomic read from the value stored at `ptr`.
@@ -469,8 +788,52 @@ unsafe fn atomic_store(ptr: *const u64, val: u64, order: Ordering) {
 /// # Safety
 /// - `ptr` must be valid for reads.
 /// - `ptr` must be properly aligned.
-unsafe fn atomic_load(ptr: *const u64, order: Ordering) -> u64 {
-    (*(ptr as *const AtomicU64)).load(order)
+unsafe fn atomic_load<T: Atomic>(ptr: *const T, order: Ordering) -> T {
+    T::load(ptr, order)
+}
+
+/// Read a performance monitoring counter via the `rdpmc` instruction.
+///
+/// # Safety
+/// - `index` must be a valid PMC index
+/// - The current CPU must be allowed to execute the `rdpmc` instruction at the
+///   current priviledge level.
+///
+/// Note that the safety constraints come from the x86 ISA so any violation of
+/// them will likely lead to a SIGINT or other such signal.
+#[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+unsafe fn rdpmc(index: u32) -> u64 {
+    // This saves a few instructions for 64-bit since LLVM doesn't realize
+    // that the top 32 bits of RAX:RDX are cleared otherwise.
+    #[cfg(target_arch = "x86_64")]
+    {
+        let lo: u64;
+        let hi: u64;
+
+        std::arch::asm!(
+            "rdpmc",
+            in("ecx") index,
+            out("rax") lo,
+            out("rdx") hi
+        );
+
+        lo | (hi << u32::BITS)
+    }
+
+    #[cfg(target_arch = "x86")]
+    {
+        let lo: u32;
+        let hi: u32;
+
+        std::arch::asm!(
+            "rdpmc",
+            in("ecx") index,
+            out("eax") lo,
+            out("edx") hi
+        );
+
+        (lo as u64) | ((hi as u64) << u32::BITS)
+    }
 }
 
 #[cfg(test)]

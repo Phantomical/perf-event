@@ -126,7 +126,7 @@ pub use crate::data::{ReadFormat, SampleFlags as SampleFlag};
 pub use crate::flags::{Clock, SampleSkid};
 pub use crate::group::Group;
 pub use crate::group_data::{GroupData, GroupEntry, GroupIter};
-pub use crate::sampler::{Record, Sampler};
+pub use crate::sampler::{Record, Sampler, UserReadData};
 
 /// Support for parsing data contained within `Record`s.
 ///
@@ -905,6 +905,28 @@ mod tests {
         match builder.build() {
             Ok(_) => panic!("counter construction was not supposed to succeed"),
             Err(e) => assert_eq!(e.raw_os_error(), Some(libc::EINVAL)),
+        }
+    }
+
+    #[test]
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+    fn test_sampler_rdpmc() {
+        let mut sampler = Builder::new(events::Hardware::INSTRUCTIONS)
+            .enabled(true)
+            .build()
+            .expect("failed to build counter")
+            .sampled(1024)
+            .expect("failed to build sampler");
+
+        let read = sampler.read_user();
+        sampler.disable().unwrap();
+        let value = sampler.read_full().unwrap();
+
+        assert!(read.time_running() <= value.time_running().unwrap());
+        assert!(read.time_enabled() <= value.time_enabled().unwrap());
+
+        if let Some(count) = read.count() {
+            assert!(count <= value.count(), "{count} <= {}", value.count());
         }
     }
 }

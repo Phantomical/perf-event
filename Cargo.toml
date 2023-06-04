@@ -9,3 +9,6 @@ resolver = "2"
 # local version when doing dev work.
 [patch.crates-io]
 perf-event-open-sys2 = { path = "perf-event-open-sys"}
+
+[profile.release]
+debug = 2
