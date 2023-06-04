@@ -737,8 +737,6 @@ macro_rules! assert_same_size {
             let _assert_same_size: [u8; ::std::mem::size_of::<$b>()] =
                 [0u8; ::std::mem::size_of::<$a>()];
         }
-
-        ()
     }};
 }
 
