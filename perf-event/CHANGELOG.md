@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `Sampler::read_user` method to for reading counters from userspace.
   Only x86 and x86_64 are supported when reading counters. 
 
+## Changed
+- **(breaking)** `Sampler::next_record` now takes `&mut self` instead of `&self`.
+  This fixes UB that could arise due to having multiple `Record`s from the same
+  `Sampler` existing at the same time.
+
 ## [0.6.3] - 2023-05-30
 ### Added
 - Introduce a new `Dynamic` event type along with its builder. These allow

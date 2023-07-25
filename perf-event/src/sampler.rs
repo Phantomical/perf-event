@@ -91,7 +91,7 @@ impl Sampler {
     ///
     /// [`next_blocking`]: Self::next_blocking
     /// [man]: https://man7.org/linux/man-pages/man2/perf_event_open.2.html
-    pub fn next_record(&self) -> Option<Record> {
+    pub fn next_record(&mut self) -> Option<Record> {
         use std::{mem, ptr, slice};
 
         let page = self.page();
