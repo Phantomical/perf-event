@@ -22,8 +22,8 @@ use perf_event_open_sys::bindings;
 /// ```no_run
 /// use perf_event::events::Raw;
 /// use perf_event::{Builder, Group};
-/// 
-/// // Raw config values for an ARMv8 PMU. 
+///
+/// // Raw config values for an ARMv8 PMU.
 /// let INSNS_RETIRED: Raw = Raw::new(0x08);
 /// let CPU_CYCLES: Raw = Raw::new(0x11);
 ///
