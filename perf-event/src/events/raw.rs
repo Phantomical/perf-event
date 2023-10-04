@@ -36,7 +36,7 @@ pub struct Raw {
 
 impl Raw {
     /// Create a new Raw event
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Raw {
             config: 0,
             config1: 0,
@@ -45,19 +45,19 @@ impl Raw {
     }
 
     /// Set config
-    pub fn config(mut self, config: u64) -> Self {
+    pub const fn config(mut self, config: u64) -> Self {
         self.config = config;
         self
     }
 
     /// Set config1
-    pub fn config1(mut self, config1: u64) -> Self {
+    pub const fn config1(mut self, config1: u64) -> Self {
         self.config1 = config1;
         self
     }
 
     /// Set config2
-    pub fn config2(mut self, config2: u64) -> Self {
+    pub const fn config2(mut self, config2: u64) -> Self {
         self.config2 = config2;
         self
     }
