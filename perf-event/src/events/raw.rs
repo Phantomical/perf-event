@@ -2,16 +2,16 @@ use crate::events::Event;
 use perf_event_open_sys::bindings;
 
 /// A raw perf counter for the current CPU.
-/// 
+///
 /// Most CPUs have additional counters beyond those provided by the kernel.
 /// `Raw` events allow you to access those events. Note that the values needed
 /// to configure raw events a liable to change between CPU vendors and even
 /// different hardware revisions of the same platform.
-/// 
+///
 /// The event can be chosen by setting the `config` field. Most events will
 /// only need that, but others may require setting the `config1` or `config2`
 /// fields as well.
-/// 
+///
 /// To find the config values required for counters consult your CPU manual.
 /// - For Intel CPUs, see the Intel Software Developer Manual, volume 3B.
 /// - For AMD, see the AMD BIOS and Kernel Developer Guide.
@@ -47,7 +47,7 @@ pub struct Raw {
 
 impl Raw {
     /// Create a new raw event value with the given config value.
-    /// 
+    ///
     /// This sets all other config fields to zero. For most events this should
     /// be sufficient but in other cases methods are provided to set those
     /// fields as well.
