@@ -19,18 +19,18 @@ use perf_event_open_sys::bindings;
 ///
 /// Example:
 ///
-/// ```
-/// # use perf_event::events::Raw;
-/// # use perf_event::{Builder, Group};
-/// # fn main() -> std::io::Result<()> {
+/// ```no_run
+/// use perf_event::events::Raw;
+/// use perf_event::{Builder, Group};
+/// 
+/// // Raw config values for an ARMv8 PMU. 
 /// let INSNS_RETIRED: Raw = Raw::new(0x08);
 /// let CPU_CYCLES: Raw = Raw::new(0x11);
 ///
 /// let mut group = Group::new()?;
 /// let raw_insns_retired = group.add(&Builder::new(INSNS_RETIRED).include_kernel())?;
 /// let raw_cpu_cycles = group.add(&Builder::new(CPU_CYCLES).include_kernel())?;
-/// # Ok(())
-/// }
+/// # std::io::Result::Ok(())
 /// ```
 #[non_exhaustive]
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
