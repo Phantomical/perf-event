@@ -41,6 +41,7 @@ mod cache;
 mod dynamic;
 mod hardware;
 mod probe;
+mod raw;
 mod software;
 mod tracepoint;
 mod util;
@@ -55,6 +56,7 @@ pub use self::cache::{Cache, CacheId, CacheOp, CacheResult};
 pub use self::dynamic::{Dynamic, DynamicBuilder};
 pub use self::hardware::Hardware;
 pub use self::probe::{KProbe, UProbe};
+pub use self::raw::Raw;
 pub use self::software::Software;
 pub use self::tracepoint::Tracepoint;
 
