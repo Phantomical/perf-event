@@ -22,7 +22,7 @@ use perf_event_open_sys::bindings;
 /// # Ok(())
 /// }
 /// ```
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
 pub struct Raw {
     /// Raw config of the event
     pub config: u64,
@@ -32,12 +32,6 @@ pub struct Raw {
 
     /// Raw config2 of the event
     pub config2: u64,
-}
-
-impl Default for Raw {
-    fn default() -> Self {
-        Self::new()
-    }
 }
 
 impl Raw {
