@@ -1,11 +1,21 @@
 use crate::events::Event;
 use perf_event_open_sys::bindings;
 
-/// A Raw event
-///
-/// A Raw event can be specified with:
-///
-/// - config, config1 and config2
+/// A raw perf counter for the current CPU.
+/// 
+/// Most CPUs have additional counters beyond those provided by the kernel.
+/// `Raw` events allow you to access those events. Note that the values needed
+/// to configure raw events a liable to change between CPU vendors and even
+/// different hardware revisions of the same platform.
+/// 
+/// The event can be chosen by setting the `config` field. Most events will
+/// only need that, but others may require setting the `config1` or `config2`
+/// fields as well.
+/// 
+/// To find the config values required for counters consult your CPU manual.
+/// - For Intel CPUs, see the Intel Software Developer Manual, volume 3B.
+/// - For AMD, see the AMD BIOS and Kernel Developer Guide.
+/// - Other vendors should have equivalent documentation.
 ///
 /// Example:
 ///
@@ -35,7 +45,10 @@ pub struct Raw {
 }
 
 impl Raw {
-    /// Create a new Raw event
+    /// Create a new raw event.
+    /// 
+    /// The event has all fields zeroed out and will likely need to be configured
+    /// further to get the counter configuration you want.
     pub const fn new() -> Self {
         Raw {
             config: 0,
