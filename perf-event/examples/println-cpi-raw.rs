@@ -2,6 +2,11 @@ use perf_event::events::{Raw, Software};
 use perf_event::{Builder, ReadFormat};
 
 fn main() -> std::io::Result<()> {
+    /*
+     * These Raw events are for armv8 Neoverse.
+     *
+     * See: https://developer.arm.com/documentation/100616/0400/debug-descriptions/performance-monitor-unit/pmu-events
+     */
     let insns_retired: Raw = Raw::new(0x08);
     let cpu_cycles: Raw = Raw::new(0x11);
 
