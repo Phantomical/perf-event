@@ -32,6 +32,7 @@ use perf_event_open_sys::bindings;
 /// # Ok(())
 /// }
 /// ```
+#[non_exhaustive]
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct Raw {
     /// Raw config of the event
