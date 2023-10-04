@@ -23,8 +23,8 @@ use perf_event_open_sys::bindings;
 /// # use perf_event::events::Raw;
 /// # use perf_event::{Builder, Group};
 /// # fn main() -> std::io::Result<()> {
-/// let INSNS_RETIRED: Raw = Raw::new().config(0x08);
-/// let CPU_CYCLES: Raw = Raw::new().config(0x11);
+/// let INSNS_RETIRED: Raw = Raw::new(0x08);
+/// let CPU_CYCLES: Raw = Raw::new(0x11);
 ///
 /// let mut group = Group::new()?;
 /// let raw_insns_retired = group.add(&Builder::new(INSNS_RETIRED).include_kernel())?;
@@ -32,7 +32,7 @@ use perf_event_open_sys::bindings;
 /// # Ok(())
 /// }
 /// ```
-#[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct Raw {
     /// Raw config of the event
     pub config: u64,
@@ -45,13 +45,14 @@ pub struct Raw {
 }
 
 impl Raw {
-    /// Create a new raw event.
+    /// Create a new raw event value with the given config value.
     /// 
-    /// The event has all fields zeroed out and will likely need to be configured
-    /// further to get the counter configuration you want.
-    pub const fn new() -> Self {
+    /// This sets all other config fields to zero. For most events this should
+    /// be sufficient but in other cases methods are provided to set those
+    /// fields as well.
+    pub const fn new(config: u64) -> Self {
         Raw {
-            config: 0,
+            config,
             config1: 0,
             config2: 0,
         }

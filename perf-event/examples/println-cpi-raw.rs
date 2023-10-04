@@ -2,8 +2,8 @@ use perf_event::events::{Raw, Software};
 use perf_event::{Builder, ReadFormat};
 
 fn main() -> std::io::Result<()> {
-    let insns_retired: Raw = Raw::new().config(0x08);
-    let cpu_cycles: Raw = Raw::new().config(0x11);
+    let insns_retired: Raw = Raw::new(0x08);
+    let cpu_cycles: Raw = Raw::new(0x11);
 
     let mut group = Builder::new(Software::DUMMY)
         .read_format(
