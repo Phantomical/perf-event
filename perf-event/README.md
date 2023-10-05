@@ -15,7 +15,7 @@ are available in Linux.
 
 Add the following to your `Cargo.toml`
 ```toml
-perf-event2 = "0.5"
+perf-event2 = "0.7"
 ```
 
 Use `Builder` to create a perf counter, then use `enable` and `disable` to stop
@@ -56,15 +56,18 @@ supports the following:
 - Creating a `Group` to monitor anything other than all threads in the current
   process.
 - Sampled events via the kernel (e.g. gathering stack traces, etc.). Parsing
-  the records emitted by the kernel is still not supported by this crate.
+  the records emitted by the kernel is supported via the [`perf-event-data`]
+  crate.
 - Direct access to the underlying `perf_event_attr` struct exposed by the
   kernel.
+
+[`perf-event-data`]: https://crates.io/crates/perf-event-data
 
 ## Migrating From perf-event
 `perf-event2` v0.4.8 is exactly the same as `perf-event` v0.4.8. You should be
 to just replace `perf-event -> perf_event2` in your `Cargo.toml` and continue
 going with no changes. To get the new features, however, you will need to
-upgrade to v0.5.
+upgrade to v0.5 or later.
 
 The main change to be aware of is that `Builder::new` now takes an event
 directly. Where you would previously do this
