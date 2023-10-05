@@ -7,12 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.1] - 2023-10-05
+### Added
+- Added a `Raw` event type for creating `PERF_TYPE_RAW` counter events.
+  @janaknat
+
 ## [0.7.0] - 2023-07-24
-## Added
+### Added
 - Add `Sampler::read_user` method to for reading counters from userspace.
   Only x86 and x86_64 are supported when reading counters. 
 
-## Changed
+### Changed
 - **(breaking)** `Sampler::next_record` now takes `&mut self` instead of `&self`.
   This fixes UB that could arise due to having multiple `Record`s from the same
   `Sampler` existing at the same time.
