@@ -667,7 +667,7 @@ impl<'a> ByteBuffer<'a> {
         *self = match *self {
             Self::Single(buf) => Self::Single(&buf[..new_len]),
             Self::Split([a, b]) => {
-                if a.len() <= new_len {
+                if new_len <= a.len() {
                     Self::Single(&a[..new_len])
                 } else {
                     Self::Split([a, &b[..new_len - a.len()]])
@@ -867,5 +867,29 @@ mod tests {
 
         assert_eq!(&out, b"aaaaa");
         assert_eq!(buf.len(), 6);
+    }
+
+    #[test]
+    fn buf_truncate_over_split() {
+        let mut out = [0u8; 11];
+        let mut buf = ByteBuffer::Split([b"1234567890", b"abc"]);
+
+        buf.truncate(11);
+        assert_eq!(buf.len(), 11);
+
+        buf.copy_to_slice(&mut out);
+        assert_eq!(&out, b"1234567890a");
+    }
+
+    #[test]
+    fn buf_truncate_before_split() {
+        let mut out = [0u8; 5];
+        let mut buf = ByteBuffer::Split([b"1234567890", b"abc"]);
+
+        buf.truncate(5);
+        assert_eq!(buf.len(), 5);
+
+        buf.copy_to_slice(&mut out);
+        assert_eq!(&out, b"12345");
     }
 }
