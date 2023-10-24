@@ -24,7 +24,7 @@ hooks = []
 
 [dependencies]
 bitflags = "2.1"
-c-enum = "0.1"
+c-enum = "0.2.0"
 libc = "0.2"
 memmap2 = "0.9"
 perf-event-data = "0.1.1"
