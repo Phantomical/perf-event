@@ -105,7 +105,9 @@ c_enum! {
         /// Memory accesses that stay local to the originating NUMA node.
         NODE = bindings::PERF_COUNT_HW_CACHE_NODE as _,
     }
+}
 
+c_enum! {
     /// What sort of cache operation we would like to observe.
     ///
     /// This is used in the `Cache` type as part of the identification of a cache
@@ -126,7 +128,9 @@ c_enum! {
         /// Prefetch accesses.
         PREFETCH = bindings::PERF_COUNT_HW_CACHE_OP_PREFETCH as _,
     }
+}
 
+c_enum! {
     /// What sort of cache result we're interested in observing.
     ///
     /// `ACCESS` counts the total number of operations performed on the cache,
