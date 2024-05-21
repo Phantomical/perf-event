@@ -702,7 +702,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(any(target_arch = "x86_64", target_arch = "i686"))]
+    #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
     fn dynamic_msr_event() {
         if !pmu_enabled("msr") {
             return;
