@@ -109,6 +109,19 @@ impl Group {
             .build_group()
     }
 
+    /// Conveniently create a [Builder] preconfigured for groups.
+    pub fn builder() -> Builder<'static> {
+        let mut builder = Builder::new(Software::DUMMY);
+        builder.read_format(
+            ReadFormat::GROUP
+                | ReadFormat::TOTAL_TIME_ENABLED
+                | ReadFormat::TOTAL_TIME_RUNNING
+                | ReadFormat::ID,
+        );
+
+        builder
+    }
+
     /// Access the internal counter for this group.
     pub fn as_counter(&self) -> &Counter {
         &self.0
