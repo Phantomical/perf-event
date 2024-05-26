@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.3] - 2023-05-26
+### Added
+- Add `Group::builder` method which creates a builder that is preconfigured for
+  constructing a `Group`. @daniel-levin
+
 ## [0.7.2] - 2023-10-22
 ### Fixed
 - Fixed a panic in `Sampler` when handling a record that wrapped around the end
