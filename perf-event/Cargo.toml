@@ -33,5 +33,5 @@ perf-event-data = "0.1.1"
 version = "5.0"
 
 [dev-dependencies]
-nix = { version = "0.27", features = ["process", "feature"] }
+nix = { version = "0.29", features = ["process", "feature"] }
 anyhow = "1.0"
