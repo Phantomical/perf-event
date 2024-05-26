@@ -109,7 +109,23 @@ impl Group {
             .build_group()
     }
 
-    /// Conveniently create a [Builder] preconfigured for groups.
+    /// Construct a [Builder] preconfigured for creating a `Group`.
+    ///
+    /// Specifically, this creates a builder with the [`Software::DUMMY`] event
+    /// and with [`read_format`] set to `GROUP | ID | TOTAL_TIME_ENABLED |
+    /// TOTAL_TIME_RUNNING`. If you override [`read_format`] you will need to
+    /// ensure that [`ReadFormat::GROUP`] is set, otherwise [`build_group`] will
+    /// return an error.
+    ///
+    /// Note that any counter added to this group must observe the same set of
+    /// CPUs and processes as the group itself. That means if you configure the
+    /// group to observe a single CPU then the members of the group must also be
+    /// configured to only observe a single CPU, the same applies when choosing
+    /// target processes. Failing to follow this will result in an error when
+    /// adding the counter to the group.
+    ///
+    /// [`read_format`]: Builder::read_format
+    /// [`build_group`]: Builder::build_group
     pub fn builder() -> Builder<'static> {
         let mut builder = Builder::new(Software::DUMMY);
         builder.read_format(
