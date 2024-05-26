@@ -99,14 +99,7 @@ impl Group {
     /// on any CPU. If you need to build a `Group` with different settings you
     /// will need to use [`Builder::build_group`].
     pub fn new() -> io::Result<Group> {
-        Builder::new(Software::DUMMY)
-            .read_format(
-                ReadFormat::GROUP
-                    | ReadFormat::TOTAL_TIME_ENABLED
-                    | ReadFormat::TOTAL_TIME_RUNNING
-                    | ReadFormat::ID,
-            )
-            .build_group()
+        Self::builder().build_group()
     }
 
     /// Construct a [Builder] preconfigured for creating a `Group`.
