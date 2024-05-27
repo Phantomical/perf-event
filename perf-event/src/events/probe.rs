@@ -33,13 +33,13 @@ impl Event for Probe {
         attr.config = self.retprobe.into();
         match self.target {
             ProbeTarget::Addr(addr) => {
-                attr.__bindgen_anon_3.kprobe_func = 0;
-                attr.__bindgen_anon_4.kprobe_addr = addr;
+                attr.kprobe_func = 0;
+                attr.kprobe_addr = addr;
                 None
             }
             ProbeTarget::Func { name, offset } => {
-                attr.__bindgen_anon_3.kprobe_func = name.as_ptr() as usize as u64;
-                attr.__bindgen_anon_4.probe_offset = offset;
+                attr.kprobe_func = name.as_ptr() as usize as u64;
+                attr.probe_offset = offset;
                 Some(Arc::new(name))
             }
         }

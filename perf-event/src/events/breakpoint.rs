@@ -166,15 +166,15 @@ impl Event for Breakpoint {
         match self {
             Self::Data { access, addr, len } => {
                 attr.bp_type = access.bits();
-                attr.__bindgen_anon_3.bp_addr = addr;
-                attr.__bindgen_anon_4.bp_len = len;
+                attr.bp_addr = addr;
+                attr.bp_len = len;
             }
             Self::Code { addr } => {
                 attr.bp_type = bindings::HW_BREAKPOINT_X;
-                attr.__bindgen_anon_3.bp_addr = addr;
+                attr.bp_addr = addr;
                 // According to the perf_event_open man page, execute breakpoints
                 // should set len to sizeof(long).
-                attr.__bindgen_anon_4.bp_len = std::mem::size_of::<libc::c_long>() as _;
+                attr.bp_len = std::mem::size_of::<libc::c_long>() as _;
             }
         }
     }

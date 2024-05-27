@@ -82,7 +82,7 @@ impl Event for Raw {
     fn update_attrs(self, attr: &mut bindings::perf_event_attr) {
         attr.type_ = bindings::PERF_TYPE_RAW;
         attr.config = self.config;
-        attr.__bindgen_anon_3.config1 = self.config1;
-        attr.__bindgen_anon_4.config2 = self.config2;
+        attr.config1 = self.config1;
+        attr.config2 = self.config2;
     }
 }
