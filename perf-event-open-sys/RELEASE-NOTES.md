@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 5.0.4
+- Regenerated the bindings from the linux 6.9.2 source tree.
+- Allow direct access to fields declared in inline unions within
+  `perf_event_attr` via a bunch of deref magic.
+
 ## 5.0.3
 - Regenerated the bindings from the linux 6.3.4 source tree.
 
