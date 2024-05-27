@@ -24,3 +24,4 @@ name = "perf_event_open_sys"
 
 [dependencies]
 libc = "0.2"
+memoffset = "0.9.1"
