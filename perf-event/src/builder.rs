@@ -583,7 +583,7 @@ impl<'a> Builder<'a> {
     /// [`sample_frequency`]: Builder::sample_frequency
     pub fn sample_period(&mut self, period: u64) -> &mut Self {
         self.attrs.set_freq(0);
-        self.attrs.__bindgen_anon_1.sample_period = period;
+        self.attrs.sample_period = period;
         self
     }
 
@@ -604,7 +604,7 @@ impl<'a> Builder<'a> {
     /// [`sample_period`]: Builder::sample_period
     pub fn sample_frequency(&mut self, frequency: u64) -> &mut Self {
         self.attrs.set_freq(1);
-        self.attrs.__bindgen_anon_1.sample_freq = frequency;
+        self.attrs.sample_freq = frequency;
         self
     }
 
@@ -642,7 +642,7 @@ impl<'a> Builder<'a> {
     /// [`Sampler::next_blocking`]: crate::Sampler::next_blocking
     pub fn wakeup_watermark(&mut self, watermark: usize) -> &mut Self {
         self.attrs.set_watermark(1);
-        self.attrs.__bindgen_anon_2.wakeup_watermark = watermark as _;
+        self.attrs.wakeup_watermark = watermark as _;
         self
     }
 
@@ -662,7 +662,7 @@ impl<'a> Builder<'a> {
     /// [`Sampler::next_blocking`]: crate::Sampler::next_blocking
     pub fn wakeup_events(&mut self, events: usize) -> &mut Self {
         self.attrs.set_watermark(0);
-        self.attrs.__bindgen_anon_2.wakeup_events = events as _;
+        self.attrs.wakeup_events = events as _;
         self
     }
 
