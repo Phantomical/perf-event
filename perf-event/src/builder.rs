@@ -194,7 +194,7 @@ impl<'a> Builder<'a> {
     /// [`Group::add`]: crate::Group::add
     /// [`enable`]: crate::Counter::enable
     /// [`enable_on_exec`]: Builder::enable_on_exec
-    /// [0]: https://man7.org/linux/man-pages/man2/perf_event_open.2.html
+    /// [0]: https://www.mankier.com/2/perf_event_open
     pub fn build(&self) -> std::io::Result<Counter> {
         Counter::new_internal(self.build_impl(None)?, ParseConfig::from(self.attrs))
     }
@@ -235,7 +235,7 @@ impl<'a> Builder<'a> {
     ///   [`UnsupportedOptionsError`]. This allows you to access the size of the
     ///   [`perf_event_attr`] struct that the kernel was expecting.
     ///
-    /// [0]: https://man7.org/linux/man-pages/man2/perf_event_open.2.html
+    /// [0]: https://www.mankier.com/2/perf_event_open
     ///
     /// # Panics
     /// This method panics if `attrs.size` has been set to a value larger than
@@ -350,7 +350,7 @@ impl<'a> Builder<'a> {
     /// Observe the process with the given process id. This requires
     /// [`CAP_SYS_PTRACE`][man-capabilities] capabilities.
     ///
-    /// [man-capabilities]: http://man7.org/linux/man-pages/man7/capabilities.7.html
+    /// [man-capabilities]: https://www.mankier.com/7/capabilities
     pub fn observe_pid(&mut self, pid: pid_t) -> &mut Self {
         self.who = EventPid::Other(pid);
         self
@@ -370,7 +370,7 @@ impl<'a> Builder<'a> {
     /// [`any_cpu`]: Builder::any_cpu
     /// [`build`]: Builder::build
     /// [`one_cpu`]: Builder::one_cpu
-    /// [cap]: http://man7.org/linux/man-pages/man7/capabilities.7.html
+    /// [cap]: https://www.mankier.com/7/capabilities
     pub fn any_pid(&mut self) -> &mut Self {
         self.who = EventPid::Any;
         self
@@ -380,7 +380,7 @@ impl<'a> Builder<'a> {
     /// `cgroup` argument should be a `File` referring to the cgroup's directory
     /// in the cgroupfs filesystem.
     ///
-    /// [man-cgroups]: http://man7.org/linux/man-pages/man7/cgroups.7.html
+    /// [man-cgroups]: https://www.mankier.com/7/cgroups
     pub fn observe_cgroup(&mut self, cgroup: &'a File) -> &mut Self {
         self.who = EventPid::CGroup(cgroup);
         self
@@ -432,7 +432,7 @@ impl<'a> Builder<'a> {
     /// ```
     ///
     /// [`SampleFlag`]: crate::SampleFlag
-    /// [manpage]: http://man7.org/linux/man-pages/man2/perf_event_open.2.html
+    /// [manpage]: https://www.mankier.com/2/perf_event_open
     pub fn sample(&mut self, sample: SampleFlag) -> &mut Self {
         self.attrs.sample_type |= sample.bits();
         self
@@ -683,7 +683,7 @@ impl<'a> Builder<'a> {
     ///
     /// This method is mutually exclusive with [`wakeup_watermark`].
     ///
-    /// [manpage]: https://man7.org/linux/man-pages/man2/perf_event_open.2.html
+    /// [manpage]: https://www.mankier.com/2/perf_event_open
     /// [`wakeup_watermark`]: Builder::wakeup_watermark
     /// [`Sampler::next_blocking`]: crate::Sampler::next_blocking
     pub fn wakeup_events(&mut self, events: usize) -> &mut Self {
@@ -718,7 +718,7 @@ impl<'a> Builder<'a> {
     /// See the [manpage] for the exact fields that are included and which
     /// records include the trailer.
     ///
-    /// [manpage]: https://man7.org/linux/man-pages/man2/perf_event_open.2.html
+    /// [manpage]: https://www.mankier.com/2/perf_event_open
     pub fn sample_id_all(&mut self, sample_id_all: bool) -> &mut Self {
         self.attrs.set_sample_id_all(sample_id_all.into());
         self
@@ -730,7 +730,7 @@ impl<'a> Builder<'a> {
     ///
     /// See the [manpage] for more documentation.
     ///
-    /// [manpage]: https://man7.org/linux/man-pages/man2/perf_event_open.2.html
+    /// [manpage]: https://www.mankier.com/2/perf_event_open
     pub fn exclude_host(&mut self, exclude_host: bool) -> &mut Self {
         self.attrs.set_exclude_host(exclude_host.into());
         self
@@ -742,7 +742,7 @@ impl<'a> Builder<'a> {
     ///
     /// See the [manpage] for more documentation.
     ///
-    /// [manpage]: https://man7.org/linux/man-pages/man2/perf_event_open.2.html
+    /// [manpage]: https://www.mankier.com/2/perf_event_open
     pub fn exclude_guest(&mut self, exclude_guest: bool) -> &mut Self {
         self.attrs.set_exclude_guest(exclude_guest.into());
         self
@@ -791,7 +791,7 @@ impl<'a> Builder<'a> {
     /// See [`Clock`] and the [`clock_getttime(2)`][0] manpage for
     /// documentation on what the different clock values mean.
     ///
-    /// [0]: https://man7.org/linux/man-pages/man2/clock_gettime.2.html
+    /// [0]: https://www.mankier.com/2/clock_gettime
     pub fn clockid(&mut self, clockid: impl Into<Option<Clock>>) -> &mut Self {
         let clockid = clockid.into();
         self.attrs.set_use_clockid(clockid.is_some().into());

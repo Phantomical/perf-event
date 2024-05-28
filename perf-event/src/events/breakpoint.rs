@@ -83,7 +83,7 @@ bitflags! {
 ///   manpage indicates that the only valid values for `bp_len` are 1, 2, 4, and
 ///   8.
 ///
-/// [man]: http://man7.org/linux/man-pages/man2/perf_event_open.2.html
+/// [man]: https://www.mankier.com/2/perf_event_open
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub enum Breakpoint {
     /// Data breakpoint. Triggers when code reads or writes to the memory area

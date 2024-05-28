@@ -71,7 +71,7 @@ pub enum SampleSkid {
 /// See the [`clock_gettime(2)`][0] manpage for the full documentation on what
 /// each clock value actually means.
 ///
-/// [0]: https://man7.org/linux/man-pages/man2/clock_gettime.2.html
+/// [0]: https://www.mankier.com/2/clock_gettime
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 #[repr(transparent)]
 pub struct Clock(libc::clockid_t);

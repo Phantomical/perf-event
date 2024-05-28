@@ -30,7 +30,7 @@ used_in_docs!(Hardware);
 /// [`perf_event_open` man page][0] for documentation on how the sample records
 /// are represented in memory.
 ///
-/// [0]: https://man7.org/linux/man-pages/man2/perf_event_open.2.html
+/// [0]: https://www.mankier.com/2/perf_event_open
 pub struct Sampler {
     counter: Counter,
     mmap: memmap2::MmapRaw,
@@ -90,7 +90,7 @@ impl Sampler {
     /// on the [`perf_event_open`][man] manpage for details on how to do this.
     ///
     /// [`next_blocking`]: Self::next_blocking
-    /// [man]: https://man7.org/linux/man-pages/man2/perf_event_open.2.html
+    /// [man]: https://www.mankier.com/2/perf_event_open
     pub fn next_record(&mut self) -> Option<Record> {
         use std::{mem, ptr, slice};
 

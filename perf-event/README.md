@@ -8,7 +8,7 @@ are available in Linux.
 > has been updated to support more features of the [`perf_event_open`][man]
 > API.
 
-[man]: http://man7.org/linux/man-pages/man2/perf_event_open.2.html
+[man]:https://www.mankier.com/2/perf_event_open
 [jb-perf-event]: https://github.com/jimblandy/perf-event
 
 ## Getting Started
