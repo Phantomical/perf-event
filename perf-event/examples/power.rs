@@ -1,6 +1,5 @@
-use std::time::Duration;
-
 use std::io;
+use std::time::Duration;
 
 use perf_event::events::{Dynamic, Software};
 use perf_event::{Builder, Counter, Group};

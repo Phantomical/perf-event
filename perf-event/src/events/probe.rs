@@ -1,9 +1,10 @@
-use perf_event_open_sys::bindings::perf_event_attr;
 use std::ffi::CString;
 use std::os::unix::ffi::OsStrExt;
 use std::path::Path;
 use std::sync::Arc;
 use std::{fmt, io};
+
+use perf_event_open_sys::bindings::perf_event_attr;
 
 use crate::events::{CachedPmuType, Event, EventData};
 

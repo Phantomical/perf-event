@@ -1,8 +1,9 @@
+use std::thread::sleep;
+use std::time::Duration;
+
 use libc::pid_t;
 use perf_event::events::Hardware;
 use perf_event::Builder;
-use std::thread::sleep;
-use std::time::Duration;
 
 fn main() -> std::io::Result<()> {
     let pid: pid_t = std::env::args()

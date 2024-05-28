@@ -47,11 +47,12 @@
 //! as breaking changes for semver purposes, despite the fact that
 //! they may break code using this module's functionality.
 
+use std::cell::RefCell;
+use std::os::raw::{c_char, c_int, c_uint, c_ulong};
+
 use libc::pid_t;
 use perf_event_open_sys as real;
 use perf_event_open_sys::bindings;
-use std::cell::RefCell;
-use std::os::raw::{c_char, c_int, c_uint, c_ulong};
 
 use crate::{Counter, Group};
 
@@ -223,11 +224,12 @@ impl Hooks for RealHooks {
 /// intercepting system calls and returning simulated results, for
 /// testing.
 pub mod sys {
-    use super::HOOKS;
-    use libc::pid_t;
     use std::os::raw::{c_int, c_ulong};
 
+    use libc::pid_t;
     pub use perf_event_open_sys::bindings;
+
+    use super::HOOKS;
 
     /// See [`perf_event_open_sys::perf_event_open`][peo].
     ///
@@ -252,9 +254,11 @@ pub mod sys {
     ///
     /// [peosi]: https://docs.rs/perf-event-open-sys/latest/perf_event_open_sys/ioctls/index.html
     pub mod ioctls {
-        use super::HOOKS;
-        use perf_event_open_sys::bindings;
         use std::os::raw::{c_char, c_int, c_uint};
+
+        use perf_event_open_sys::bindings;
+
+        use super::HOOKS;
 
         macro_rules! expand_hooked_ioctl {
             ( $name:ident, $ioctl_:ident, $arg_type:ty ) => {

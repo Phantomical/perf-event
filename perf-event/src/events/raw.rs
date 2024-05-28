@@ -1,5 +1,6 @@
-use crate::events::Event;
 use perf_event_open_sys::bindings;
+
+use crate::events::Event;
 
 /// A raw perf counter for the current CPU.
 ///
