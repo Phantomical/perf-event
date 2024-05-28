@@ -18,10 +18,6 @@ categories = [
 [lib]
 name = "perf_event"
 
-[features]
-# Enable syscall interception hooks for mock testing and logging.
-hooks = []
-
 [dependencies]
 bitflags = "2.1"
 c-enum = "0.2.0"
