@@ -95,6 +95,17 @@ macro_rules! used_in_docs {
     };
 }
 
+use std::convert::TryInto;
+use std::fs::File;
+use std::os::fd::{AsRawFd, IntoRawFd, RawFd};
+use std::time::Duration;
+use std::{fmt, io};
+
+use crate::data::endian::Native;
+use crate::data::parse::ParseConfig;
+use crate::sys::bindings::PERF_IOC_FLAG_GROUP;
+use crate::sys::ioctls;
+
 pub mod events;
 
 mod builder;
@@ -112,22 +123,10 @@ pub mod hooks;
 
 // When the `"hooks"` feature is not enabled, call directly into
 // `perf-event-open-sys`.
-#[cfg(not(feature = "hooks"))]
-use perf_event_open_sys as sys;
-
 // When the `"hooks"` feature is enabled, `sys` functions allow for
 // interposed functions that provide simulated results for testing.
 #[cfg(feature = "hooks")]
 use hooks::sys;
-
-pub use crate::builder::{Builder, UnsupportedOptionsError};
-#[doc(inline)]
-pub use crate::data::{ReadFormat, SampleFlags as SampleFlag};
-pub use crate::flags::{Clock, SampleSkid};
-pub use crate::group::Group;
-pub use crate::group_data::{GroupData, GroupEntry, GroupIter};
-pub use crate::sampler::{Record, Sampler, UserReadData};
-
 /// Support for parsing data contained within `Record`s.
 ///
 /// Note that this module is actually just the [`perf-event-data`][ped] crate.
@@ -140,19 +139,16 @@ pub use crate::sampler::{Record, Sampler, UserReadData};
 /// # perf-event-data
 #[doc(inline)]
 pub use perf_event_data as data;
+#[cfg(not(feature = "hooks"))]
+use perf_event_open_sys as sys;
 
-// ... separate public exports and non-public ones
-
-use std::convert::TryInto;
-use std::fs::File;
-use std::os::fd::{AsRawFd, IntoRawFd, RawFd};
-use std::time::Duration;
-use std::{fmt, io};
-
-use crate::data::endian::Native;
-use crate::data::parse::ParseConfig;
-use crate::sys::bindings::PERF_IOC_FLAG_GROUP;
-use crate::sys::ioctls;
+pub use crate::builder::{Builder, UnsupportedOptionsError};
+#[doc(inline)]
+pub use crate::data::{ReadFormat, SampleFlags as SampleFlag};
+pub use crate::flags::{Clock, SampleSkid};
+pub use crate::group::Group;
+pub use crate::group_data::{GroupData, GroupEntry, GroupIter};
+pub use crate::sampler::{Record, Sampler, UserReadData};
 
 /// A counter for a single kernel or hardware event.
 ///
@@ -504,9 +500,10 @@ impl Counter {
     ///
     /// # Example
     /// ```
+    /// use std::time::Duration;
+    ///
     /// use perf_event::events::Hardware;
     /// use perf_event::{Builder, ReadFormat};
-    /// use std::time::Duration;
     ///
     /// let mut counter = Builder::new(Hardware::INSTRUCTIONS)
     ///     .read_format(ReadFormat::TOTAL_TIME_RUNNING)
@@ -661,9 +658,10 @@ impl Counter {
 
     /// Actual read implementation for when `ReadFormat::GROUP` is not set.
     fn do_read_single(&mut self) -> io::Result<CounterData> {
-        use crate::flags::ReadFormatExt;
         use std::io::Read;
         use std::mem::size_of;
+
+        use crate::flags::ReadFormatExt;
 
         debug_assert!(!self.is_group());
 
@@ -687,10 +685,11 @@ impl Counter {
 
     /// Actual read implementation for when `ReadFormat::GROUP` is set.
     fn do_read_group(&mut self) -> io::Result<GroupData> {
-        use crate::data::ReadGroup;
-        use crate::flags::ReadFormatExt;
         use std::io::Read;
         use std::mem::size_of;
+
+        use crate::data::ReadGroup;
+        use crate::flags::ReadFormatExt;
 
         // The general structure format looks like this, depending on what
         // read_format flags were enabled.

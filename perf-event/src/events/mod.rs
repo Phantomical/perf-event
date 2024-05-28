@@ -52,6 +52,8 @@ pub mod error {
 }
 
 pub use self::breakpoint::{Breakpoint, BreakpointAccess};
+#[allow(deprecated)]
+pub use self::cache::WhichCache;
 pub use self::cache::{Cache, CacheId, CacheOp, CacheResult};
 pub use self::dynamic::{Dynamic, DynamicBuilder};
 pub use self::hardware::Hardware;
@@ -59,9 +61,6 @@ pub use self::probe::{KProbe, UProbe};
 pub use self::raw::Raw;
 pub use self::software::Software;
 pub use self::tracepoint::Tracepoint;
-
-#[allow(deprecated)]
-pub use self::cache::WhichCache;
 
 /// An event that we can monitor or count.
 pub trait Event: Sized {
