@@ -8,6 +8,7 @@ use std::sync::Arc;
 
 use libc::pid_t;
 use perf_event_data::parse::ParseConfig;
+use perf_event_open_sys::bindings;
 
 use crate::events::{Event, EventData};
 use crate::sys::bindings::perf_event_attr;
@@ -134,6 +135,31 @@ impl<'a> Builder<'a> {
         builder.exclude_hv(true);
         builder.read_format(ReadFormat::TOTAL_TIME_ENABLED | ReadFormat::TOTAL_TIME_RUNNING);
         builder
+    }
+
+    /// Override the event configured for this builder.
+    ///
+    /// This can be used reuse other configuration for the builder (which
+    /// processes/CPUs to observe, sampling fields, read format, etc.) while
+    /// building counters for different events.
+    ///
+    /// Before configuring the [`perf_event_attr`] struct using the event all
+    /// config fields within it will be set to 0. Specifically: `type_`,
+    /// `config`, `config1`, `config2`, and `config3`. This ensures that most
+    /// events do not have to worry about resetting state that other events may
+    /// have set.
+    pub fn event<E: Event>(&mut self, event: E) -> &mut Self {
+        // Reset existing config fields before updating for the event. This ensures
+        // that left over config values for the previous event don't cause
+        // an error.
+        self.attrs.type_ = bindings::PERF_TYPE_HARDWARE;
+        self.attrs.config = 0;
+        self.attrs.config1 = 0;
+        self.attrs.config2 = 0;
+        self.attrs.config3 = 0;
+
+        self.event_data = event.update_attrs_with_data(&mut self.attrs);
+        self
     }
 
     /// Construct a [`Counter`] according to the specifications made on this
