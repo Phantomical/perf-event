@@ -872,6 +872,88 @@ impl<'a> Builder<'a> {
         self.attrs.set_sigtrap(sigtrap.into());
         self
     }
+
+    /// Copy data to the user's signal handler (via `si_perf` in `siginfo_t`).
+    ///
+    /// This can be used to figure out which event caused the signal to be sent.
+    /// It does nothing unless [`sigtrap`](Self::sigtrap) is also set to `true`.
+    pub fn sig_data(&mut self, sig_data: u64) -> &mut Self {
+        self.attrs.sig_data = sig_data;
+        self
+    }
+
+    /// Specify which CPU registers to dump in a sample.
+    ///
+    /// This does nothing unless [`SampleFlag::REGS_USER`] is part of the
+    /// specified [`sample`](Builder::sample) flags.
+    ///
+    /// The actual layout of the register mask is architecture specific.
+    /// You will generally want the `PERF_REG_<arch>` constants in
+    /// [`perf_event_open_sys`]. (e.g. `PERF_REG_X86_SP`).
+    pub fn sample_regs_user(&mut self, regs: u64) -> &mut Self {
+        self.attrs.sample_regs_user = regs;
+        self
+    }
+
+    /// Specify which CPU registers to dump in a sample.
+    ///
+    /// This does nothing unless [`SampleFlag::REGS_INTR`] is part of the
+    /// specified [`sample`](Builder::sample) flags.
+    ///
+    /// The actual layout of the register mask is architecture specific.
+    /// You will generally want the `PERF_REG_<arch>` constants in
+    /// [`perf_event_open_sys`]. (e.g. `PERF_REG_X86_SP`).
+    pub fn sample_regs_intr(&mut self, regs: u64) -> &mut Self {
+        self.attrs.sample_regs_user = regs;
+        self
+    }
+
+    /// Specify the maximum size of the user stack to dump.
+    ///
+    /// This option does nothing unless [`SampleFlag::STACK_USER`] is set in the
+    /// sample flags.
+    ///
+    /// Note that the size of the array allocated within the sample record will
+    /// always be exactly this size, even if the actual collected stack data is
+    /// much smaller. The allocated sample buffer (when constructing a
+    /// [`Sampler`]) will need to be large enough to accommodate the chosen
+    /// stack size or else samples will be lost.
+    ///
+    /// [`Sampler`]: crate::Sampler
+    pub fn sample_stack_user(&mut self, stack: u32) -> &mut Self {
+        self.attrs.sample_stack_user = stack;
+        self
+    }
+
+    /// Specify the maximum number of stack frames to include when unwinding the
+    /// user stack.
+    ///
+    /// This does nothing unless [`SampleFlag::CALLCHAIN`] is set in the sample
+    /// flags.
+    ///
+    /// Note that the kernel has a user configurable limit specified at
+    /// `/proc/sys/kernel/perf_event_max_stack`. Setting `sample_max_stack` to
+    /// larger than that limit will result in an `EOVERFLOW` error when building
+    /// the counter.
+    pub fn sample_max_stack(&mut self, max_stack: u16) -> &mut Self {
+        self.attrs.sample_max_stack = max_stack;
+        self
+    }
+
+    /// Specify how much data is required before the kernel emits an AUX record.
+    pub fn aux_watermark(&mut self, watermark: u32) -> &mut Self {
+        self.attrs.aux_watermark = watermark;
+        self
+    }
+
+    /// Specify the desired size of AUX data.
+    ///
+    /// This does nothing unless [`SampleFlag::AUX`] is set in the sample flags.
+    /// Note that the emitted aux data can be smaller than the requested size.
+    pub fn aux_sample_size(&mut self, sample_size: u32) -> &mut Self {
+        self.attrs.aux_sample_size = sample_size;
+        self
+    }
 }
 
 impl fmt::Debug for Builder<'_> {
