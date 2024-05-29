@@ -9,7 +9,7 @@ c_enum! {
     /// Each variant of this enum corresponds to a particular `PERF_COUNT_SW_`...
     /// value supported by the [`perf_event_open`][man] system call.
     ///
-    /// [man]: http://man7.org/linux/man-pages/man2/perf_event_open.2.html
+    /// [man]: https://www.mankier.com/2/perf_event_open
     #[repr(transparent)]
     #[derive(Clone, Copy, Eq, PartialEq, Hash)]
     pub enum Software : u64 {

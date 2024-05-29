@@ -10,7 +10,7 @@
 //! [the source code][src] for the C identifier name and see what `bindgen` did
 //! with it.
 //!
-//! [man]: http://man7.org/linux/man-pages/man2/perf_event_open.2.html
+//! [man]: https://www.mankier.com/2/perf_event_open
 //! [bindgen]: https://github.com/rust-lang/rust-bindgen
 //! [src]: ../../src/perf_event_open_sys/bindings.rs.html
 

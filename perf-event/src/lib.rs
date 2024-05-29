@@ -73,7 +73,7 @@
 //! If you find yourself in need of something this crate doesn't support, please
 //! consider submitting a pull request.
 //!
-//! [man]: http://man7.org/linux/man-pages/man2/perf_event_open.2.html
+//! [man]: https://www.mankier.com/2/perf_event_open
 
 #![cfg_attr(debug_assertions, warn(missing_docs))]
 #![cfg_attr(not(debug_assertions), deny(missing_docs))]
@@ -625,7 +625,7 @@ impl Counter {
     /// [`read`]: crate::Group::read
     /// [`TOTAL_TIME_ENABLED`]: ReadFormat::TOTAL_TIME_ENABLED
     /// [`TOTAL_TIME_RUNNING`]: ReadFormat::TOTAL_TIME_RUNNING
-    /// [man]: http://man7.org/linux/man-pages/man2/perf_event_open.2.html
+    /// [man]: https://www.mankier.com/2/perf_event_open
     pub fn read_count_and_time(&mut self) -> io::Result<CountAndTime> {
         let data = self.read_full()?;
 

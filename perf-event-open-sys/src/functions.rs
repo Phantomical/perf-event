@@ -34,7 +34,7 @@ use std::os::raw::{c_int, c_ulong};
 /// `perf_event_attr` struct. The measurements and other behaviors its
 /// contents request must be safe.
 ///
-/// [man]: http://man7.org/linux/man-pages/man2/perf_event_open.2.html
+/// [man]: https://www.mankier.com/2/perf_event_open
 pub unsafe fn perf_event_open(
     attrs: *mut bindings::perf_event_attr,
     pid: pid_t,
@@ -60,7 +60,7 @@ pub mod ioctls {
     //!
     //! On error, these return `-1` and set the C `errno` value.
     //!
-    //! [man]: http://man7.org/linux/man-pages/man2/perf_event_open.2.html
+    //! [man]: https://www.mankier.com/2/perf_event_open
     use crate::bindings::{self, perf_event_attr, perf_event_query_bpf};
     use std::os::raw::{c_char, c_int, c_uint, c_ulong};
 

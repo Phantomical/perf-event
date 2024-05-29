@@ -174,7 +174,7 @@
 //!
 //! [`bindings`]: bindings/index.html
 //! [`ioctls`]: ioctls/index.html
-//! [man]: http://man7.org/linux/man-pages/man2/perf_event_open.2.html
+//! [man]: https://www.mankier.com/2/perf_event_open
 //! [`perf_event`]: https://crates.io/crates/perf_event
 
 mod attr;

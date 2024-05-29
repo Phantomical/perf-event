@@ -80,7 +80,7 @@ c_enum! {
     /// `PERF_COUNT_HW_CACHE_...` constant supported by the [`perf_event_open`][man]
     /// system call.
     ///
-    /// [man]: http://man7.org/linux/man-pages/man2/perf_event_open.2.html
+    /// [man]: https://www.mankier.com/2/perf_event_open
     #[repr(transparent)]
     #[derive(Clone, Copy, Eq, PartialEq, Hash)]
     pub enum CacheId : u8 {
@@ -115,7 +115,7 @@ c_enum! {
     /// `PERF_COUNT_HW_CACHE_OP_...` constant supported by the
     /// [`perf_event_open`][man] system call.
     ///
-    /// [man]: http://man7.org/linux/man-pages/man2/perf_event_open.2.html
+    /// [man]: https://www.mankier.com/2/perf_event_open
     #[repr(transparent)]
     #[derive(Clone, Copy, Eq, PartialEq, Hash)]
     pub enum CacheOp : u8 {
@@ -142,7 +142,7 @@ c_enum! {
     /// `PERF_COUNT_HW_CACHE_RESULT_...` constant supported by the
     /// [`perf_event_open`][man] system call.
     ///
-    /// [man]: http://man7.org/linux/man-pages/man2/perf_event_open.2.html
+    /// [man]: https://www.mankier.com/2/perf_event_open
     #[repr(transparent)]
     #[derive(Clone, Copy, Eq, PartialEq, Hash)]
     pub enum CacheResult : u8 {
