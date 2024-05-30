@@ -712,7 +712,7 @@ impl<'a> ByteBuffer<'a> {
 unsafe impl<'a> ParseBuf<'a> for ByteBuffer<'a> {
     fn chunk(&mut self) -> ParseResult<ParseBufChunk<'_, 'a>> {
         match self {
-            Self::Single(chunk) if chunk.is_empty() => Err(ParseError::eof()),
+            Self::Single([]) => Err(ParseError::eof()),
             Self::Single(chunk) => Ok(ParseBufChunk::External(chunk)),
             Self::Split([chunk, _]) => Ok(ParseBufChunk::External(chunk)),
         }
