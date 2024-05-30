@@ -1,6 +1,10 @@
-use crate::{Builder, ReadFormat};
+use bitflags::bitflags;
+
+use crate::sys::bindings;
+use crate::{Builder, ReadFormat, SampleFlag};
 
 used_in_docs!(Builder);
+used_in_docs!(SampleFlag);
 
 pub(crate) trait ReadFormatExt: Sized {
     const MAX_NON_GROUP_SIZE: usize;
@@ -105,4 +109,74 @@ impl Clock {
     pub const fn into_raw(self) -> libc::clockid_t {
         self.0
     }
+}
+
+bitflags! {
+    /// Specify what branches to include in a branch record.
+    ///
+    /// This is used by the builder in combination with setting
+    /// [`SampleFlag::BRANCH_STACK`].
+    ///
+    /// The first part of the value is the privilege level, which is a
+    /// combination of `USER`, `BRANCH`, or `HV`. `PLM_ALL` is a convenience
+    /// value with all 3 ORed together. If none of the privilege levels are set
+    /// then the kernel will use the privilege level of the event.
+    ///
+    /// The second part specifies which branch types are to be included in the
+    /// branch stack. At least one of these bits must be set.
+    pub struct SampleBranchFlag: u64 {
+        /// The branch target is in user space.
+        const USER = bindings::PERF_SAMPLE_BRANCH_USER as _;
+
+        /// The branch target is in kernel space.
+        const KERNEL = bindings::PERF_SAMPLE_BRANCH_KERNEL as _;
+
+        /// The branch target is in the hypervisor.
+        const HV = bindings::PERF_SAMPLE_BRANCH_HV as _;
+
+        /// Include any branch type.
+        const ANY = bindings::PERF_SAMPLE_BRANCH_ANY as _;
+
+        /// Include any call branch.
+        ///
+        /// This includes direct calls, indirect calls, and far jumps.
+        const ANY_CALL = bindings::PERF_SAMPLE_BRANCH_ANY_CALL as _;
+
+        /// Include indirect calls.
+        const IND_CALL = bindings::PERF_SAMPLE_BRANCH_IND_CALL as _;
+
+        /// Include direct calls.
+        const CALL = bindings::PERF_SAMPLE_BRANCH_CALL as _;
+
+        /// Include any return branch.
+        const ANY_RETURN = bindings::PERF_SAMPLE_BRANCH_ANY_RETURN as _;
+
+        /// Include indirect jumps.
+        const IND_JUMP = bindings::PERF_SAMPLE_BRANCH_IND_JUMP as _;
+
+        /// Include conditional branches.
+        const COND = bindings::PERF_SAMPLE_BRANCH_COND as _;
+
+        /// Include transactional memory aborts.
+        const ABORT_TX = bindings::PERF_SAMPLE_BRANCH_ABORT_TX as _;
+
+        /// Include branches in a transactional memory transaction.
+        const IN_TX = bindings::PERF_SAMPLE_BRANCH_IN_TX as _;
+
+        /// Include branches not in a transactional memory transaction.
+        const NO_TX = bindings::PERF_SAMPLE_BRANCH_NO_TX as _;
+
+        /// Include branches that are part of a hardware-generated call stack.
+        ///
+        /// Note that this requires hardware support. See the [manpage][0] for
+        /// platforms which support this.
+        ///
+        /// [0]: https://www.mankier.com/2/perf_event_open
+        const CALL_STACK = bindings::PERF_SAMPLE_BRANCH_CALL_STACK as _;
+    }
+}
+
+impl SampleBranchFlag {
+    /// All privilege levels (`USER`, `KERNEL`, and `HV`) ORed together.
+    pub const PLM_ALL: Self = Self::USER.union(Self::KERNEL).union(Self::HV);
 }
