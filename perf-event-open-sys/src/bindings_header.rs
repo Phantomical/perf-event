@@ -20,4 +20,3 @@
 #![allow(non_snake_case)]
 #![allow(deref_nullptr)] // `bindgen_test_layout` tests use bogus code
 #![allow(clippy::all)]
-
