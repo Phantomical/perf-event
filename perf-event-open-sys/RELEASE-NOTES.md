@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+## 5.0.5
+- Added support for riscv64.
+
 ## 5.0.4
 - Regenerated the bindings from the linux 6.9.2 source tree.
 - Allow direct access to fields declared in inline unions within
