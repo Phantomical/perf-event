@@ -148,7 +148,11 @@ impl GroupData {
 
     /// Return an iterator over all entries in `self`.
     ///
-    /// For compatibility reasons, if the [`Group`] this was
+    /// For compatibility reasons, if this `GroupData` was returned by reading
+    /// from a [`Group`] then the iterator will skip the group counter itself.
+    /// Normally this is what you want since the [`Group`] is usually a dummy
+    /// counter. This does not apply if this `GroupData` was returned from a
+    /// [`read_group`](Counter::read_group) call on a [`Counter`].
     ///
     /// # Example
     /// ```
