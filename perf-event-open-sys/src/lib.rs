@@ -187,6 +187,10 @@ pub mod bindings;
 #[path = "bindings_x86_64.rs"]
 pub mod bindings;
 
+#[cfg(target_arch = "riscv64")]
+#[path = "bindings_riscv64gc"]
+pub mod bindings;
+
 // Provide actual callable code only on Linux/Android. See "Using perf
 // types on other platforms", in the top-level crate docs.
 #[cfg(any(target_os = "linux", target_os = "android"))]
