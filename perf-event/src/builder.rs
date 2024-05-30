@@ -12,7 +12,10 @@ use perf_event_open_sys::bindings;
 
 use crate::events::{Event, EventData};
 use crate::sys::bindings::perf_event_attr;
-use crate::{check_errno_syscall, sys, Clock, Counter, Group, ReadFormat, SampleFlag, SampleSkid};
+use crate::{
+    check_errno_syscall, sys, Clock, Counter, Group, ReadFormat, SampleBranchFlag, SampleFlag,
+    SampleSkid,
+};
 
 /// A builder for [`Counter`]s.
 ///
@@ -879,6 +882,15 @@ impl<'a> Builder<'a> {
     /// It does nothing unless [`sigtrap`](Self::sigtrap) is also set to `true`.
     pub fn sig_data(&mut self, sig_data: u64) -> &mut Self {
         self.attrs.sig_data = sig_data;
+        self
+    }
+
+    /// Specify which branches to include in the branch record.
+    ///
+    /// This does nothing unless [`SampleFlag::BRANCH_STACK`] is specified in
+    /// the sample flags.
+    pub fn branch_sample_type(&mut self, flags: SampleBranchFlag) -> &mut Self {
+        self.attrs.branch_sample_type = flags.bits();
         self
     }
 

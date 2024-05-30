@@ -145,7 +145,7 @@ use perf_event_open_sys as sys;
 pub use crate::builder::{Builder, UnsupportedOptionsError};
 #[doc(inline)]
 pub use crate::data::{ReadFormat, SampleFlags as SampleFlag};
-pub use crate::flags::{Clock, SampleSkid};
+pub use crate::flags::{Clock, SampleBranchFlag, SampleSkid};
 pub use crate::group::Group;
 pub use crate::group_data::{GroupData, GroupEntry, GroupIter};
 pub use crate::sampler::{Record, Sampler, UserReadData};
