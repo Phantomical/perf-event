@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-## 0.7.4 - 2023-05-30
+## 0.7.4 - 2024-05-30
 ### Added
 - Added several new methods on `Builder` for some fields which were not
   previously wrapped.
@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - All manpage links in the docs now point to https://mankier.com
 
-## 0.7.3 - 2023-05-26
+## 0.7.3 - 2024-05-26
 ### Added
 - Add `Group::builder` method which creates a builder that is preconfigured for
   constructing a `Group`. @daniel-levin
