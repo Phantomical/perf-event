@@ -12,6 +12,9 @@
 //! This module is only compiled on Linux. The `bindings` declarations
 //! are useful on other platforms for parsing perf files.
 
+#![allow(unsafe_op_in_unsafe_fn)]
+#![allow(unused_imports)]
+
 use crate::bindings;
 
 use libc::pid_t;
@@ -97,10 +100,10 @@ pub mod ioctls {
     }
 
     unsafe fn untyped_ioctl<A>(fd: c_int, ioctl: bindings::perf_event_ioctls, arg: A) -> c_int {
-        #[cfg(any(target_env = "musl", target_os = "android"))]
+        #[cfg(any(target_env = "musl", target_env = "ohos", target_os = "android"))]
         return libc::ioctl(fd, ioctl as c_int, arg);
 
-        #[cfg(not(any(target_env = "musl", target_os = "android")))]
+        #[cfg(not(any(target_env = "musl", target_env = "ohos", target_os = "android")))]
         libc::ioctl(fd, ioctl as c_ulong, arg)
     }
 }
