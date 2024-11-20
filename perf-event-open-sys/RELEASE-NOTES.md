@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+## 5.0.6
+- Fixed some `unused_code` warnings within the crate.
+
 ## 5.0.5
 - Added support for riscv64.
 
