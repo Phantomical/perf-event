@@ -624,7 +624,7 @@ impl<'s> Record<'s> {
         // All other records either already parsed the sample id or don't have it.
         // With SAMPLE records, we can construct the sample id struct directly.
         if self.ty() != bindings::PERF_RECORD_SAMPLE {
-            return Ok(metadata.sample_id().clone());
+            return Ok(*metadata.sample_id());
         }
 
         let record = parser.parse::<data::Sample>()?;
