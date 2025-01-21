@@ -604,6 +604,32 @@ impl<'s> Record<'s> {
         let mut parser = Parser::new(self.data, self.sampler.config().clone());
         data::Record::parse_with_header(&mut parser, self.header)
     }
+
+    /// Parse the sample id for the record.
+    ///
+    /// This will only be non-empty if the [`sample_id_all`] was set when
+    /// building the counter. In addition, `MMAP` records never have a sample id
+    /// set. If you want sample ids and `MMAP` records you will need to request
+    /// `MMAP2` records instead.
+    ///
+    /// [`sample_id_all`]: crate::Builder::sample_id_all
+    pub fn parse_sample_id(&self) -> ParseResult<data::SampleId> {
+        use perf_event_open_sys::bindings;
+
+        let config = self.sampler.config();
+        let mut parser = Parser::new(self.data, config.clone());
+
+        let (mut parser, metadata) = parser.parse_metadata_with_header(self.header)?;
+
+        // All other records either already parsed the sample id or don't have it.
+        // With SAMPLE records, we can construct the sample id struct directly.
+        if self.ty() != bindings::PERF_RECORD_SAMPLE {
+            return Ok(metadata.sample_id().clone());
+        }
+
+        let record = parser.parse::<data::Sample>()?;
+        Ok(data::SampleId::from_sample(&record))
+    }
 }
 
 impl<'s> Drop for Record<'s> {
