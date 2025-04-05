@@ -140,7 +140,7 @@ fn main() -> anyhow::Result<()> {
                                 != 0;
                             let preempt = match preempt {
                                 true => "[preempt]",
-                                false => ""
+                                false => "",
                             };
 
                             println!("{ftime} switch: {dir: <3} {pid:<7} {tid:<7} {preempt}");
