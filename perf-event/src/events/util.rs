@@ -58,13 +58,10 @@ impl CachedPmuType {
             .trim_end()
             .parse()
             .map_err(|e| {
-                io::Error::new(
-                    io::ErrorKind::Other,
-                    ParsePmuTypeError {
-                        name: self.name,
-                        error: e,
-                    },
-                )
+                io::Error::other(ParsePmuTypeError {
+                    name: self.name,
+                    error: e,
+                })
             })?;
 
         self.value.store(ty, Ordering::Relaxed);

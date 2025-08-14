@@ -91,7 +91,7 @@ impl Sampler {
     ///
     /// [`next_blocking`]: Self::next_blocking
     /// [man]: https://www.mankier.com/2/perf_event_open
-    pub fn next_record(&mut self) -> Option<Record> {
+    pub fn next_record(&mut self) -> Option<Record<'_>> {
         use std::{mem, ptr, slice};
 
         let page = self.page();
@@ -163,7 +163,7 @@ impl Sampler {
     /// `libc::poll`. There are only two cases where this can happen:
     /// - the current process has run out of file descriptors, or,
     /// - the kernel couldn't allocate memory for internal poll datastructures.
-    pub fn next_blocking(&mut self, timeout: Option<Duration>) -> Option<Record> {
+    pub fn next_blocking(&mut self, timeout: Option<Duration>) -> Option<Record<'_>> {
         let deadline = timeout.map(|timeout| Instant::now() + timeout);
 
         loop {
@@ -587,7 +587,7 @@ impl<'s> Record<'s> {
     ///
     /// For most records this is effectively free but if the record wraps
     /// around the end of the ringbuffer then it will be copied to a vector.
-    pub fn to_contiguous(&self) -> Cow<[u8]> {
+    pub fn to_contiguous(&self) -> Cow<'_, [u8]> {
         match self.data {
             ByteBuffer::Single(data) => Cow::Borrowed(data),
             ByteBuffer::Split([a, b]) => {
@@ -600,7 +600,7 @@ impl<'s> Record<'s> {
     }
 
     /// Parse the data in this record to a [`data::Record`] enum.
-    pub fn parse_record(&self) -> ParseResult<data::Record> {
+    pub fn parse_record(&self) -> ParseResult<data::Record<'_>> {
         let mut parser = Parser::new(self.data, self.sampler.config().clone());
         data::Record::parse_with_header(&mut parser, self.header)
     }

@@ -64,9 +64,7 @@ impl Tracepoint {
         let id = std::fs::read_to_string(&path)?
             .trim_end()
             .parse()
-            .map_err(move |e| {
-                io::Error::new(io::ErrorKind::Other, UnparseableIdFile::new(path, e))
-            })?;
+            .map_err(move |e| io::Error::other(UnparseableIdFile::new(path, e)))?;
 
         Ok(Self::with_id(id))
     }

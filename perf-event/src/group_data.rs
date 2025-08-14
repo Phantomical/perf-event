@@ -164,7 +164,7 @@ impl GroupData {
     /// }
     /// # std::io::Result::Ok(())
     /// ```
-    pub fn iter(&self) -> GroupIter {
+    pub fn iter(&self) -> GroupIter<'_> {
         let mut iter = self.iter_with_group();
         if self.should_skip {
             let _ = iter.next();
@@ -172,7 +172,7 @@ impl GroupData {
         iter
     }
 
-    fn iter_with_group(&self) -> GroupIter {
+    fn iter_with_group(&self) -> GroupIter<'_> {
         GroupIter(self.data.entries())
     }
 
