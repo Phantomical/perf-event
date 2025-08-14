@@ -633,21 +633,11 @@ impl Counter {
             count: data.count(),
             time_enabled: data
                 .time_enabled()
-                .ok_or_else(|| {
-                    io::Error::new(
-                        io::ErrorKind::Other,
-                        "time_enabled was not enabled within read_format",
-                    )
-                })?
+                .ok_or_else(|| io::Error::other("time_enabled was not enabled within read_format"))?
                 .as_nanos() as _,
             time_running: data
                 .time_running()
-                .ok_or_else(|| {
-                    io::Error::new(
-                        io::ErrorKind::Other,
-                        "time_running was not enabled within read_format",
-                    )
-                })?
+                .ok_or_else(|| io::Error::other("time_running was not enabled within read_format"))?
                 .as_nanos() as _,
         })
     }
@@ -676,9 +666,7 @@ impl Counter {
         }
 
         let mut parser = crate::data::parse::Parser::new(&data[..len], self.config.clone());
-        let value: crate::data::ReadValue = parser
-            .parse()
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+        let value: crate::data::ReadValue = parser.parse().map_err(io::Error::other)?;
 
         Ok(CounterData(value))
     }
@@ -741,7 +729,7 @@ impl Counter {
         let mut parser = crate::data::parse::Parser::new(data.as_slice(), self.config.clone());
         let data: ReadGroup = parser
             .parse::<ReadGroup>()
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?
+            .map_err(io::Error::other)?
             .into_owned();
 
         let data = GroupData::new(data);

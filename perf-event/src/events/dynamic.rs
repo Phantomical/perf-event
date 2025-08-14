@@ -665,7 +665,7 @@ impl std::error::Error for MissingParameterError {}
 
 impl From<DynamicBuilderError> for io::Error {
     fn from(value: DynamicBuilderError) -> Self {
-        io::Error::new(io::ErrorKind::Other, value)
+        io::Error::other(value)
     }
 }
 
@@ -677,7 +677,7 @@ impl From<MissingParameterError> for DynamicBuilderError {
 
 impl From<MissingParameterError> for io::Error {
     fn from(value: MissingParameterError) -> Self {
-        io::Error::new(io::ErrorKind::Other, value)
+        io::Error::other(value)
     }
 }
 

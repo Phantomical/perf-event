@@ -284,8 +284,7 @@ impl<'a> Builder<'a> {
     pub fn build_group(&self) -> io::Result<Group> {
         let read_format = ReadFormat::from_bits_retain(self.attrs.read_format);
         if !read_format.contains(ReadFormat::GROUP) {
-            return Err(io::Error::new(
-                ErrorKind::Other,
+            return Err(io::Error::other(
                 "groups must be created with the GROUP flag enabled",
             ));
         }
