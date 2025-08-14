@@ -2578,7 +2578,7 @@ impl ::std::fmt::Debug for perf_event_mmap_page {
     }
 }
 #[repr(C)]
-#[derive(Debug, Default, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone, zerocopy::FromBytes)]
 pub struct perf_event_header {
     pub type_: __u32,
     pub misc: __u16,

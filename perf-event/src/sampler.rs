@@ -671,9 +671,7 @@ impl<'a> ByteBuffer<'a> {
     fn parse_header(&mut self) -> perf_event_header {
         let mut bytes = [0; std::mem::size_of::<perf_event_header>()];
         self.copy_to_slice(&mut bytes);
-        // SAFETY: perf_event_header is a packed C struct so it is valid to
-        //         copy arbitrary initialized memory into it.
-        unsafe { std::mem::transmute(bytes) }
+        zerocopy::transmute!(bytes)
     }
 
     fn len(&self) -> usize {
