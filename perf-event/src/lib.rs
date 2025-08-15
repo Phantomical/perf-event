@@ -118,15 +118,6 @@ mod sampler;
 #[doc = include_str!("../README.md")]
 mod readme {}
 
-#[cfg(feature = "hooks")]
-pub mod hooks;
-
-// When the `"hooks"` feature is not enabled, call directly into
-// `perf-event-open-sys`.
-// When the `"hooks"` feature is enabled, `sys` functions allow for
-// interposed functions that provide simulated results for testing.
-#[cfg(feature = "hooks")]
-use hooks::sys;
 /// Support for parsing data contained within `Record`s.
 ///
 /// Note that this module is actually just the [`perf-event-data`][ped] crate.
@@ -139,7 +130,6 @@ use hooks::sys;
 /// # perf-event-data
 #[doc(inline)]
 pub use perf_event_data as data;
-#[cfg(not(feature = "hooks"))]
 use perf_event_open_sys as sys;
 
 pub use crate::builder::{Builder, UnsupportedOptionsError};
