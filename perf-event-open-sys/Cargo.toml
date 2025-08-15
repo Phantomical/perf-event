@@ -25,3 +25,4 @@ name = "perf_event_open_sys"
 [dependencies]
 libc = "0.2"
 memoffset = "0.9.1"
+zerocopy = { version = "0.8.26", features = ["derive"] }
