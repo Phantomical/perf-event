@@ -29,6 +29,7 @@ libc = "0.2"
 memmap2 = "0.9"
 perf-event-data = "0.1.8"
 perf-event-open-sys2 = "5.0.4"
+thiserror = "2.0.14"
 
 [dev-dependencies]
 ctrlc = "3.4.5"

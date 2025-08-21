@@ -119,7 +119,7 @@ impl Group {
     ///
     /// [`read_format`]: Builder::read_format
     /// [`build_group`]: Builder::build_group
-    pub fn builder() -> Builder<'static> {
+    pub fn builder() -> Builder {
         let mut builder = Builder::new(Software::DUMMY);
         builder.read_format(
             ReadFormat::GROUP

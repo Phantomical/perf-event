@@ -1,7 +1,8 @@
 use std::fmt;
 use std::fs::File;
 use std::io::{self, ErrorKind};
-use std::os::raw::{c_int, c_ulong};
+use std::os::fd::{AsFd, OwnedFd};
+use std::os::raw::c_ulong;
 use std::os::unix::io::{AsRawFd, FromRawFd, RawFd};
 use std::panic::{RefUnwindSafe, UnwindSafe};
 use std::sync::Arc;
@@ -9,6 +10,7 @@ use std::sync::Arc;
 use libc::pid_t;
 use perf_event_data::parse::ParseConfig;
 use perf_event_open_sys::bindings;
+use thiserror::Error;
 
 use crate::events::{Event, EventData};
 use crate::sys::bindings::perf_event_attr;
@@ -65,11 +67,11 @@ use crate::{
 /// perf_event_attr` type.
 ///
 /// [`enable`]: Counter::enable
-#[derive(Clone)]
-pub struct Builder<'a> {
+pub struct Builder {
     attrs: perf_event_attr,
-    who: EventPid<'a>,
-    cpu: Option<usize>,
+    /// Possibly holds onto a reference to a cgroup in the form of an open file
+    /// whose fd is used to identify said cgroup.
+    who: CpuPid,
 
     // Some events need to hold onto data that is referenced in the builder.
     // The perf_event_attr struct obviously doesn't have lifetimes so the only
@@ -78,47 +80,198 @@ pub struct Builder<'a> {
 }
 
 // Needed for backwards compat
-impl UnwindSafe for Builder<'_> {}
-impl RefUnwindSafe for Builder<'_> {}
+impl UnwindSafe for Builder {}
+impl RefUnwindSafe for Builder {}
 
-#[derive(Clone, Debug)]
-enum EventPid<'a> {
-    /// Monitor the calling process.
-    ThisProcess,
+/// Couple the CPU and PID options because their validity is mutually dependent.
+/// While the kernel documentation explains the meaning of the various
+/// combinations of signedness and values, we want to just use the
+/// variant that says what it does in words.
+///
+/// This enum's methods ensure that all subsequent modifications preserve
+/// the validity of the options requested. We use unsigned integers to ensure
+/// that invalid states are unrepresentable. Under the hood, we will convert
+/// these values to the correct, correponding signed equivalents.
+#[derive(Debug, Default)]
+#[allow(clippy::enum_variant_names)]
+pub enum CpuPid {
+    /// Measure the calling process (thread) on any CPU.
+    #[default]
+    ThisProcessAnyCpu,
 
-    /// Monitor the given pid.
-    Other(pid_t),
+    /// Measure the calling process (thread) on a particular CPU.
+    ThisProcessOneCpu {
+        /// The CPU core to observe
+        cpu: usize,
+    },
 
-    /// Monitor members of the given cgroup.
-    CGroup(&'a File),
+    /// Measure a particular process (thread) on any CPU.
+    OneProcessAnyCpu {
+        /// The process ID to observe
+        pid: usize,
+    },
 
-    /// Monitor any process on some given CPU.
-    Any,
+    /// Measure a particular process (thread) on a particular CPU.
+    OneProcessOneCpu {
+        /// The process ID to observe
+        pid: usize,
+        /// The CPU core to observe
+        cpu: usize,
+    },
+
+    /// Measure all processes (threads) on a particular CPU. Requires
+    /// `CAP_SYS_ADMIN`, or `CAP_PERFMON` (since Linux 5.8), or having
+    /// `/proc/sys/kernel/perf_event_paranoid` set to less than 1.
+    AnyProcessOneCpu {
+        /// The CPU core to observe
+        cpu: usize,
+    },
+
+    /// Measure a particular cgroup on any CPU.
+    CGroupAnyCpu {
+        /// File descriptor for the cgroup to observe
+        cgroup: OwnedFd,
+    },
+
+    /// Measure a particular cgroup on a particular CPU.
+    CGroupOneCpu {
+        /// File descriptor for the cgroup to observe
+        cgroup: OwnedFd,
+        /// The CPU core to observe
+        cpu: usize,
+    },
 }
 
-impl<'a> EventPid<'a> {
-    // Return the `pid` arg and the `flags` bits representing `self`.
-    fn as_args(&self) -> (pid_t, u32) {
-        match self {
-            EventPid::Any => (-1, 0),
-            EventPid::ThisProcess => (0, 0),
-            EventPid::Other(pid) => (*pid, 0),
-            EventPid::CGroup(file) => (file.as_raw_fd(), sys::bindings::PERF_FLAG_PID_CGROUP),
+impl CpuPid {
+    /// Update settings to observe just the calling process.
+    /// Note: it will overwrite any previously set cgroup settings.
+    pub fn observe_calling_process(&mut self) {
+        if let Self::OneProcessAnyCpu { .. } = self {
+            *self = Self::ThisProcessAnyCpu
         }
+    }
+
+    /// Update settings to observe just one PID.
+    /// Note: it will overwrite any previously set cgroup settings.
+    pub fn observe_pid(&mut self, pid: pid_t) {
+        let pid = pid as usize;
+        match self {
+            Self::ThisProcessAnyCpu => *self = Self::OneProcessAnyCpu { pid },
+            Self::ThisProcessOneCpu { cpu } => *self = Self::OneProcessOneCpu { pid, cpu: *cpu },
+            Self::OneProcessAnyCpu { .. } => *self = Self::OneProcessAnyCpu { pid },
+            Self::OneProcessOneCpu { cpu, .. } => *self = Self::OneProcessOneCpu { pid, cpu: *cpu },
+            Self::AnyProcessOneCpu { cpu } => *self = Self::OneProcessOneCpu { pid, cpu: *cpu },
+            Self::CGroupAnyCpu { .. } => *self = Self::OneProcessAnyCpu { pid },
+            Self::CGroupOneCpu { cpu, .. } => *self = Self::OneProcessOneCpu { pid, cpu: *cpu },
+        }
+    }
+
+    /// Update settings to observe just one CPU.
+    pub fn one_cpu(&mut self, cpu: usize) {
+        match self {
+            Self::ThisProcessAnyCpu => *self = Self::ThisProcessOneCpu { cpu },
+            Self::ThisProcessOneCpu { .. } => *self = Self::ThisProcessOneCpu { cpu },
+            Self::OneProcessAnyCpu { pid } => *self = Self::OneProcessOneCpu { pid: *pid, cpu },
+            Self::OneProcessOneCpu { pid, .. } => *self = Self::OneProcessOneCpu { pid: *pid, cpu },
+            Self::AnyProcessOneCpu { .. } => *self = Self::AnyProcessOneCpu { cpu },
+            Self::CGroupAnyCpu { cgroup } => {
+                let owned_fd = cgroup.as_fd().try_clone_to_owned().unwrap();
+                *self = Self::CGroupOneCpu {
+                    cgroup: owned_fd,
+                    cpu,
+                };
+            }
+            Self::CGroupOneCpu { cgroup, .. } => {
+                let owned_fd = cgroup.as_fd().try_clone_to_owned().unwrap();
+                *self = Self::CGroupOneCpu {
+                    cgroup: owned_fd,
+                    cpu,
+                };
+            }
+        }
+    }
+
+    /// Update settings to observe a specific cgroup.
+    /// Note: it will overwrite any previously set process/PID settings.
+    pub fn observe_cgroup(&mut self, cgroup: OwnedFd) {
+        match self {
+            Self::ThisProcessOneCpu { cpu }
+            | Self::OneProcessOneCpu { cpu, .. }
+            | Self::AnyProcessOneCpu { cpu }
+            | Self::CGroupOneCpu { cpu, .. } => {
+                *self = Self::CGroupOneCpu { cgroup, cpu: *cpu };
+            }
+            _ => {
+                *self = Self::CGroupAnyCpu { cgroup };
+            }
+        }
+    }
+
+    /// Update settings to observe any PID.
+    /// Note: it will overwrite any previously set cgroup settings.
+    pub fn observe_any_pid(&mut self) {
+        match self {
+            Self::ThisProcessOneCpu { cpu }
+            | Self::OneProcessOneCpu { cpu, .. }
+            | Self::AnyProcessOneCpu { cpu }
+            | Self::CGroupOneCpu { cpu, .. } => {
+                *self = Self::AnyProcessOneCpu { cpu: *cpu };
+            }
+            _ => {
+                *self = Self::AnyProcessOneCpu { cpu: 0 };
+            }
+        }
+    }
+
+    /// Update settings to observe any CPU.
+    /// Note: it will overwrite previously set CPU settings.
+    pub fn observe_any_cpu(&mut self) {
+        match self {
+            Self::ThisProcessOneCpu { .. } | Self::AnyProcessOneCpu { .. } => {
+                *self = Self::ThisProcessAnyCpu
+            }
+            Self::OneProcessOneCpu { pid, .. } => *self = Self::OneProcessAnyCpu { pid: *pid },
+            Self::CGroupOneCpu { cgroup, .. } => {
+                let owned_fd = cgroup.as_fd().try_clone_to_owned().unwrap();
+                *self = Self::CGroupAnyCpu { cgroup: owned_fd };
+            }
+            _ => {}
+        }
+    }
+
+    /// Return a valid combination of `pid`, `cpu` and `flags` arguments.
+    fn pid_cpu_flags(&self) -> (pid_t, i32, u32) {
+        let (pid, cpu, flags) = match self {
+            Self::ThisProcessAnyCpu => (0, -1, 0),
+            Self::ThisProcessOneCpu { cpu } => (0, *cpu as i32, 0),
+            Self::OneProcessAnyCpu { pid } => (*pid as pid_t, -1, 0),
+            Self::OneProcessOneCpu { pid, cpu } => (*pid as pid_t, *cpu as i32, 0),
+            Self::AnyProcessOneCpu { cpu } => (-1, *cpu as i32, 0),
+            Self::CGroupAnyCpu { cgroup } => {
+                (cgroup.as_raw_fd(), -1, sys::bindings::PERF_FLAG_PID_CGROUP)
+            }
+            Self::CGroupOneCpu { cgroup, cpu } => (
+                cgroup.as_raw_fd(),
+                *cpu as i32,
+                sys::bindings::PERF_FLAG_PID_CGROUP,
+            ),
+        };
+
+        debug_assert!(!(pid == -1 && cpu == -1));
+
+        (pid, cpu, flags)
     }
 }
 
 // Methods that actually do work on the builder and aren't just setting
 // config values.
-impl<'a> Builder<'a> {
+impl Builder {
     /// Return a new `Builder`, with all parameters set to their defaults.
     ///
     /// Return a new `Builder` for the specified event.
     pub fn new<E: Event>(event: E) -> Self {
         let mut attrs = perf_event_attr::default();
 
-        // Do the update_attrs bit before we set any of the default state so
-        // that user code can't break configuration we really care about.
         let data = event.update_attrs_with_data(&mut attrs);
 
         // Setting `size` accurately will not prevent the code from working
@@ -128,14 +281,10 @@ impl<'a> Builder<'a> {
 
         let mut builder = Self {
             attrs,
-            who: EventPid::ThisProcess,
-            cpu: None,
+            who: CpuPid::default(),
             event_data: data,
         };
 
-        builder.enabled(false);
-        builder.exclude_kernel(true);
-        builder.exclude_hv(true);
         builder.read_format(ReadFormat::TOTAL_TIME_ENABLED | ReadFormat::TOTAL_TIME_RUNNING);
         builder
     }
@@ -298,12 +447,7 @@ impl<'a> Builder<'a> {
         // must not exceed the size of perf_event_attr.
         assert!(self.attrs.size <= std::mem::size_of::<perf_event_attr>() as u32);
 
-        let cpu = match self.cpu {
-            Some(cpu) => cpu as c_int,
-            None => -1,
-        };
-
-        let (pid, flags) = self.who.as_args();
+        let (pid, cpu, flags) = self.who.pid_cpu_flags();
         let group_fd = group_fd.unwrap_or(-1);
 
         // Enable CLOEXEC by default. This the behaviour that the rust stdlib
@@ -330,9 +474,7 @@ impl<'a> Builder<'a> {
             Err(e) => Err(e),
         }
     }
-}
 
-impl<'a> Builder<'a> {
     /// Directly access the [`perf_event_attr`] within this builder.
     pub fn attrs(&self) -> &perf_event_attr {
         &self.attrs
@@ -345,7 +487,7 @@ impl<'a> Builder<'a> {
 
     /// Observe the calling process. (This is the default.)
     pub fn observe_self(&mut self) -> &mut Self {
-        self.who = EventPid::ThisProcess;
+        self.who.observe_calling_process();
         self
     }
 
@@ -354,7 +496,7 @@ impl<'a> Builder<'a> {
     ///
     /// [man-capabilities]: https://www.mankier.com/7/capabilities
     pub fn observe_pid(&mut self, pid: pid_t) -> &mut Self {
-        self.who = EventPid::Other(pid);
+        self.who.observe_pid(pid);
         self
     }
 
@@ -374,7 +516,7 @@ impl<'a> Builder<'a> {
     /// [`one_cpu`]: Builder::one_cpu
     /// [cap]: https://www.mankier.com/7/capabilities
     pub fn any_pid(&mut self) -> &mut Self {
-        self.who = EventPid::Any;
+        self.who.observe_any_pid();
         self
     }
 
@@ -383,14 +525,15 @@ impl<'a> Builder<'a> {
     /// in the cgroupfs filesystem.
     ///
     /// [man-cgroups]: https://www.mankier.com/7/cgroups
-    pub fn observe_cgroup(&mut self, cgroup: &'a File) -> &mut Self {
-        self.who = EventPid::CGroup(cgroup);
+    pub fn observe_cgroup(&mut self, cgroup: &File) -> &mut Self {
+        let owned_fd = cgroup.as_fd().try_clone_to_owned().unwrap();
+        self.who.observe_cgroup(owned_fd);
         self
     }
 
     /// Observe only code running on the given CPU core.
     pub fn one_cpu(&mut self, cpu: usize) -> &mut Self {
-        self.cpu = Some(cpu);
+        self.who.one_cpu(cpu);
         self
     }
 
@@ -407,7 +550,7 @@ impl<'a> Builder<'a> {
     /// [`observe_pid`]: Builder::observe_pid
     /// [`observe_cgroup`]: Builder::observe_cgroup
     pub fn any_cpu(&mut self) -> &mut Self {
-        self.cpu = None;
+        self.who.observe_any_cpu();
         self
     }
 
@@ -461,7 +604,7 @@ impl<'a> Builder<'a> {
 
 // Section for methods which directly modify attrs. These should correspond
 // roughly 1-to-1 with the entries as documented in the manpage.
-impl<'a> Builder<'a> {
+impl Builder {
     /// Whether this counter should start off enabled.
     ///
     /// When this is set, the counter will immediately start being recorded as
@@ -965,14 +1108,19 @@ impl<'a> Builder<'a> {
         self.attrs.aux_sample_size = sample_size;
         self
     }
+
+    /// Which CPU and PID to target.
+    pub fn targeting(&mut self, cpu_pid: CpuPid) -> &mut Self {
+        self.who = cpu_pid;
+        self
+    }
 }
 
-impl fmt::Debug for Builder<'_> {
+impl fmt::Debug for Builder {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Builder")
             .field("attrs", &self.attrs)
             .field("who", &self.who)
-            .field("cpu", &self.cpu)
             .field(
                 "event_data",
                 &self.event_data.as_ref().map(|_| "<dyn EventData>"),
@@ -1014,7 +1162,8 @@ impl fmt::Debug for Builder<'_> {
 ///
 /// println!("The expected size was {}", inner.expected_size());
 /// ```
-#[derive(Debug)]
+#[derive(Debug, Error)]
+#[error("perf_event_attr contained options not valid for the current kernel")]
 pub struct UnsupportedOptionsError {
     expected_size: u32,
 }
@@ -1030,10 +1179,106 @@ impl UnsupportedOptionsError {
     }
 }
 
-impl fmt::Display for UnsupportedOptionsError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str("perf_event_attr contained options not valid for the current kernel")
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_observe_pid() {
+        let mut cpu_pid = CpuPid::ThisProcessAnyCpu;
+        cpu_pid.observe_pid(1234);
+        assert!(matches!(cpu_pid, CpuPid::OneProcessAnyCpu { pid: 1234 }));
+
+        let mut cpu_pid = CpuPid::ThisProcessOneCpu { cpu: 2 };
+        cpu_pid.observe_pid(5678);
+        assert!(matches!(
+            cpu_pid,
+            CpuPid::OneProcessOneCpu { pid: 5678, cpu: 2 }
+        ));
+
+        let mut cpu_pid = CpuPid::AnyProcessOneCpu { cpu: 1 };
+        cpu_pid.observe_pid(999);
+        assert!(matches!(
+            cpu_pid,
+            CpuPid::OneProcessOneCpu { pid: 999, cpu: 1 }
+        ));
+    }
+
+    #[test]
+    fn test_one_cpu() {
+        let mut cpu_pid = CpuPid::ThisProcessAnyCpu;
+        cpu_pid.one_cpu(3);
+        assert!(matches!(cpu_pid, CpuPid::ThisProcessOneCpu { cpu: 3 }));
+
+        let mut cpu_pid = CpuPid::OneProcessAnyCpu { pid: 1234 };
+        cpu_pid.one_cpu(5);
+        assert!(matches!(
+            cpu_pid,
+            CpuPid::OneProcessOneCpu { pid: 1234, cpu: 5 }
+        ));
+
+        let mut cpu_pid = CpuPid::AnyProcessOneCpu { cpu: 1 };
+        cpu_pid.one_cpu(7);
+        assert!(matches!(cpu_pid, CpuPid::AnyProcessOneCpu { cpu: 7 }));
+    }
+
+    #[test]
+    fn test_observe_any_pid() {
+        let mut cpu_pid = CpuPid::ThisProcessOneCpu { cpu: 2 };
+        cpu_pid.observe_any_pid();
+        assert!(matches!(cpu_pid, CpuPid::AnyProcessOneCpu { cpu: 2 }));
+
+        let mut cpu_pid = CpuPid::OneProcessOneCpu { pid: 1234, cpu: 3 };
+        cpu_pid.observe_any_pid();
+        assert!(matches!(cpu_pid, CpuPid::AnyProcessOneCpu { cpu: 3 }));
+
+        let mut cpu_pid = CpuPid::ThisProcessAnyCpu;
+        cpu_pid.observe_any_pid();
+        assert!(matches!(cpu_pid, CpuPid::AnyProcessOneCpu { cpu: 0 }));
+    }
+
+    #[test]
+    fn test_observe_any_cpu() {
+        let mut cpu_pid = CpuPid::ThisProcessOneCpu { cpu: 2 };
+        cpu_pid.observe_any_cpu();
+        assert!(matches!(cpu_pid, CpuPid::ThisProcessAnyCpu));
+
+        let mut cpu_pid = CpuPid::OneProcessOneCpu { pid: 1234, cpu: 3 };
+        cpu_pid.observe_any_cpu();
+        assert!(matches!(cpu_pid, CpuPid::OneProcessAnyCpu { pid: 1234 }));
+
+        let mut cpu_pid = CpuPid::AnyProcessOneCpu { cpu: 5 };
+        cpu_pid.observe_any_cpu();
+        assert!(matches!(cpu_pid, CpuPid::ThisProcessAnyCpu));
+    }
+
+    #[test]
+    fn test_pid_cpu_flags() {
+        let cpu_pid = CpuPid::ThisProcessAnyCpu;
+        assert_eq!(cpu_pid.pid_cpu_flags(), (0, -1, 0));
+
+        let cpu_pid = CpuPid::ThisProcessOneCpu { cpu: 2 };
+        assert_eq!(cpu_pid.pid_cpu_flags(), (0, 2, 0));
+
+        let cpu_pid = CpuPid::OneProcessAnyCpu { pid: 1234 };
+        assert_eq!(cpu_pid.pid_cpu_flags(), (1234, -1, 0));
+
+        let cpu_pid = CpuPid::OneProcessOneCpu { pid: 5678, cpu: 3 };
+        assert_eq!(cpu_pid.pid_cpu_flags(), (5678, 3, 0));
+
+        let cpu_pid = CpuPid::AnyProcessOneCpu { cpu: 4 };
+        assert_eq!(cpu_pid.pid_cpu_flags(), (-1, 4, 0));
+    }
+
+    #[test]
+    fn test_observe_calling_process() {
+        let mut cpu_pid = CpuPid::OneProcessAnyCpu { pid: 1234 };
+        cpu_pid.observe_calling_process();
+        assert!(matches!(cpu_pid, CpuPid::ThisProcessAnyCpu));
+
+        let mut cpu_pid = CpuPid::ThisProcessOneCpu { cpu: 2 };
+        cpu_pid.observe_calling_process();
+        // Should remain unchanged since it's not OneProcessAnyCpu
+        assert!(matches!(cpu_pid, CpuPid::ThisProcessOneCpu { cpu: 2 }));
     }
 }
-
-impl std::error::Error for UnsupportedOptionsError {}
