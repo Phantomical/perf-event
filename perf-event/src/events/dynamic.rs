@@ -4,8 +4,8 @@ use std::{fmt, io};
 
 use perf_event_open_sys::bindings::perf_event_attr;
 
-use crate::events::x86::Msr;
 use crate::events::Event;
+use crate::events::x86::Msr;
 
 used_in_docs!(Msr);
 

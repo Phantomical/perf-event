@@ -1,5 +1,5 @@
-use perf_event::events::Breakpoint;
 use perf_event::Builder;
+use perf_event::events::Breakpoint;
 
 // Need a function that will not be optimized away or inlined by the compiler.
 #[inline(never)]

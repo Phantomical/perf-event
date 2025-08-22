@@ -11,7 +11,7 @@ use crate::sys::bindings::{
     __BindgenBitfieldUnit, perf_event_header, perf_event_mmap_page,
     perf_event_mmap_page__bindgen_ty_1__bindgen_ty_1 as MmapPageFlags,
 };
-use crate::{check_errno_syscall, data, Counter};
+use crate::{Counter, check_errno_syscall, data};
 
 used_in_docs!(Hardware);
 
@@ -384,25 +384,27 @@ impl PmcReadData {
     /// - `page` must point to a valid instance of [`perf_event_mmap_page`]
     /// - `page` must remain valid for the lifetime of this struct.
     pub unsafe fn new(page: *const perf_event_mmap_page) -> Self {
-        let seq = atomic_load(std::ptr::addr_of!((*page).lock), Ordering::Acquire);
-        barrier!();
+        unsafe {
+            let seq = atomic_load(std::ptr::addr_of!((*page).lock), Ordering::Acquire);
+            barrier!();
 
-        let capabilities = read_once!((*page).__bindgen_anon_1.capabilities);
+            let capabilities = read_once!((*page).__bindgen_anon_1.capabilities);
 
-        Self {
-            page,
-            seq,
-            flags: {
-                let mut flags = MmapPageFlags::default();
-                flags._bitfield_1 = __BindgenBitfieldUnit::new(capabilities.to_ne_bytes());
-                flags
-            },
-            enabled: read_once!((*page).time_enabled),
-            running: read_once!((*page).time_running),
+            Self {
+                page,
+                seq,
+                flags: {
+                    let mut flags = MmapPageFlags::default();
+                    flags._bitfield_1 = __BindgenBitfieldUnit::new(capabilities.to_ne_bytes());
+                    flags
+                },
+                enabled: read_once!((*page).time_enabled),
+                running: read_once!((*page).time_running),
 
-            index: read_once!((*page).index),
-            count: read_once!((*page).offset),
-            has_pmc_value: false,
+                index: read_once!((*page).index),
+                count: read_once!((*page).offset),
+                has_pmc_value: false,
+            }
         }
     }
 
@@ -779,17 +781,21 @@ macro_rules! impl_atomic {
             type Atomic = $atomic;
 
             unsafe fn store(ptr: *const Self, val: Self, order: Ordering) {
-                assert_same_size!(Self, Self::Atomic);
+                unsafe {
+                    assert_same_size!(Self, Self::Atomic);
 
-                let ptr = ptr as *const Self::Atomic;
-                (*ptr).store(val, order)
+                    let ptr = ptr as *const Self::Atomic;
+                    (*ptr).store(val, order)
+                }
             }
 
             unsafe fn load(ptr: *const Self, order: Ordering) -> Self {
-                assert_same_size!(Self, Self::Atomic);
+                unsafe {
+                    assert_same_size!(Self, Self::Atomic);
 
-                let ptr = ptr as *const Self::Atomic;
-                (*ptr).load(order)
+                    let ptr = ptr as *const Self::Atomic;
+                    (*ptr).load(order)
+                }
             }
         }
     };
@@ -806,7 +812,7 @@ impl_atomic!(i64, std::sync::atomic::AtomicI64);
 /// - `ptr` must be valid for writes.
 /// - `ptr` must be properly aligned.
 unsafe fn atomic_store<T: Atomic>(ptr: *const T, val: T, order: Ordering) {
-    T::store(ptr, val, order)
+    unsafe { T::store(ptr, val, order) }
 }
 
 /// Perform an atomic read from the value stored at `ptr`.
@@ -815,7 +821,7 @@ unsafe fn atomic_store<T: Atomic>(ptr: *const T, val: T, order: Ordering) {
 /// - `ptr` must be valid for reads.
 /// - `ptr` must be properly aligned.
 unsafe fn atomic_load<T: Atomic>(ptr: *const T, order: Ordering) -> T {
-    T::load(ptr, order)
+    unsafe { T::load(ptr, order) }
 }
 
 /// Read a performance monitoring counter via the `rdpmc` instruction.
@@ -829,36 +835,38 @@ unsafe fn atomic_load<T: Atomic>(ptr: *const T, order: Ordering) -> T {
 /// them will likely lead to a SIGINT or other such signal.
 #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
 unsafe fn rdpmc(index: u32) -> u64 {
-    // This saves a few instructions for 64-bit since LLVM doesn't realize
-    // that the top 32 bits of RAX:RDX are cleared otherwise.
-    #[cfg(target_arch = "x86_64")]
-    {
-        let lo: u64;
-        let hi: u64;
+    unsafe {
+        // This saves a few instructions for 64-bit since LLVM doesn't realize
+        // that the top 32 bits of RAX:RDX are cleared otherwise.
+        #[cfg(target_arch = "x86_64")]
+        {
+            let lo: u64;
+            let hi: u64;
 
-        std::arch::asm!(
-            "rdpmc",
-            in("ecx") index,
-            out("rax") lo,
-            out("rdx") hi
-        );
+            std::arch::asm!(
+                "rdpmc",
+                in("ecx") index,
+                out("rax") lo,
+                out("rdx") hi
+            );
 
-        lo | (hi << u32::BITS)
-    }
+            lo | (hi << u32::BITS)
+        }
 
-    #[cfg(target_arch = "x86")]
-    {
-        let lo: u32;
-        let hi: u32;
+        #[cfg(target_arch = "x86")]
+        {
+            let lo: u32;
+            let hi: u32;
 
-        std::arch::asm!(
-            "rdpmc",
-            in("ecx") index,
-            out("eax") lo,
-            out("edx") hi
-        );
+            std::arch::asm!(
+                "rdpmc",
+                in("ecx") index,
+                out("eax") lo,
+                out("edx") hi
+            );
 
-        (lo as u64) | ((hi as u64) << u32::BITS)
+            (lo as u64) | ((hi as u64) << u32::BITS)
+        }
     }
 }
 
