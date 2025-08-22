@@ -1,8 +1,8 @@
 use std::process::ExitCode;
 use std::time::Duration;
 
-use perf_event::events::x86::{Msr, MsrId};
 use perf_event::Builder;
+use perf_event::events::x86::{Msr, MsrId};
 
 fn run() -> std::io::Result<()> {
     let tsc_event = Msr::new(MsrId::TSC)?;

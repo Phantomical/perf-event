@@ -1,5 +1,5 @@
-use perf_event::events::Hardware;
 use perf_event::Builder;
+use perf_event::events::Hardware;
 
 fn main() -> std::io::Result<()> {
     let mut counter = Builder::new(Hardware::INSTRUCTIONS).build()?;

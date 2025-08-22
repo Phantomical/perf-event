@@ -93,6 +93,7 @@ function gen_bindings {
         --impl-debug
         --with-derive-default
         --no-prepend-enum-name
+        --wrap-unsafe-ops
     )
 
     bindgen "${BINDGEN_ARGS[@]}"                \

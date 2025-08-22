@@ -42,14 +42,16 @@ pub unsafe fn perf_event_open(
     group_fd: c_int,
     flags: c_ulong,
 ) -> c_int {
-    libc::syscall(
-        bindings::__NR_perf_event_open as libc::c_long,
-        attrs as *const bindings::perf_event_attr,
-        pid,
-        cpu,
-        group_fd,
-        flags,
-    ) as c_int
+    unsafe {
+        libc::syscall(
+            bindings::__NR_perf_event_open as libc::c_long,
+            attrs as *const bindings::perf_event_attr,
+            pid,
+            cpu,
+            group_fd,
+            flags,
+        ) as c_int
+    }
 }
 
 #[allow(dead_code, non_snake_case)]
@@ -76,7 +78,7 @@ pub mod ioctls {
         ({ $name:ident, $ioctl:ident, $arg_type:ty }) => {
             #[allow(clippy::missing_safety_doc)]
             pub unsafe fn $name(fd: c_int, arg: $arg_type) -> c_int {
-                untyped_ioctl(fd, bindings::$ioctl, arg)
+                unsafe { untyped_ioctl(fd, bindings::$ioctl, arg) }
             }
         };
     }
@@ -97,9 +99,11 @@ pub mod ioctls {
     }
 
     unsafe fn untyped_ioctl<A>(fd: c_int, ioctl: bindings::perf_event_ioctls, arg: A) -> c_int {
-        // Depending on the libc implementation this may cast to either
-        // - c_int (musl or android), or,
-        // - c_ulong (glibc)
-        libc::ioctl(fd, ioctl as _, arg)
+        unsafe {
+            // Depending on the libc implementation this may cast to either
+            // - c_int (musl or android), or,
+            // - c_ulong (glibc)
+            libc::ioctl(fd, ioctl as _, arg)
+        }
     }
 }
