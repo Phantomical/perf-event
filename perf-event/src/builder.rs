@@ -67,6 +67,7 @@ use crate::{
 /// perf_event_attr` type.
 ///
 /// [`enable`]: Counter::enable
+#[derive(Clone)]
 pub struct Builder {
     attrs: perf_event_attr,
     /// Possibly holds onto a reference to a cgroup in the form of an open file
@@ -92,7 +93,7 @@ impl RefUnwindSafe for Builder {}
 /// the validity of the options requested. We use unsigned integers to ensure
 /// that invalid states are unrepresentable. Under the hood, we will convert
 /// these values to the correct, correponding signed equivalents.
-#[derive(Debug, Default)]
+#[derive(Debug, Clone, Default)]
 #[allow(clippy::enum_variant_names)]
 pub enum CpuPid {
     /// Measure the calling process (thread) on any CPU.
@@ -130,13 +131,13 @@ pub enum CpuPid {
     /// Measure a particular cgroup on any CPU.
     CGroupAnyCpu {
         /// File descriptor for the cgroup to observe
-        cgroup: OwnedFd,
+        cgroup: Arc<OwnedFd>,
     },
 
     /// Measure a particular cgroup on a particular CPU.
     CGroupOneCpu {
         /// File descriptor for the cgroup to observe
-        cgroup: OwnedFd,
+        cgroup: Arc<OwnedFd>,
         /// The CPU core to observe
         cpu: usize,
     },
@@ -175,16 +176,14 @@ impl CpuPid {
             Self::OneProcessOneCpu { pid, .. } => *self = Self::OneProcessOneCpu { pid: *pid, cpu },
             Self::AnyProcessOneCpu { .. } => *self = Self::AnyProcessOneCpu { cpu },
             Self::CGroupAnyCpu { cgroup } => {
-                let owned_fd = cgroup.as_fd().try_clone_to_owned().unwrap();
                 *self = Self::CGroupOneCpu {
-                    cgroup: owned_fd,
+                    cgroup: cgroup.clone(),
                     cpu,
                 };
             }
             Self::CGroupOneCpu { cgroup, .. } => {
-                let owned_fd = cgroup.as_fd().try_clone_to_owned().unwrap();
                 *self = Self::CGroupOneCpu {
-                    cgroup: owned_fd,
+                    cgroup: cgroup.clone(),
                     cpu,
                 };
             }
@@ -194,6 +193,7 @@ impl CpuPid {
     /// Update settings to observe a specific cgroup.
     /// Note: it will overwrite any previously set process/PID settings.
     pub fn observe_cgroup(&mut self, cgroup: OwnedFd) {
+        let cgroup = Arc::new(cgroup);
         match self {
             Self::ThisProcessOneCpu { cpu }
             | Self::OneProcessOneCpu { cpu, .. }
@@ -232,8 +232,9 @@ impl CpuPid {
             }
             Self::OneProcessOneCpu { pid, .. } => *self = Self::OneProcessAnyCpu { pid: *pid },
             Self::CGroupOneCpu { cgroup, .. } => {
-                let owned_fd = cgroup.as_fd().try_clone_to_owned().unwrap();
-                *self = Self::CGroupAnyCpu { cgroup: owned_fd };
+                *self = Self::CGroupAnyCpu {
+                    cgroup: cgroup.clone(),
+                };
             }
             _ => {}
         }
