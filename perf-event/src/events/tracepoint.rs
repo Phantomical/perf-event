@@ -1,8 +1,9 @@
+use std::io;
 use std::num::ParseIntError;
 use std::path::{Path, PathBuf};
-use std::{fmt, io};
 
 use perf_event_open_sys::bindings;
+use thiserror::Error;
 
 use crate::events::Event;
 
@@ -21,6 +22,14 @@ use crate::events::Event;
 /// [`perf probe`].
 ///
 /// [`perf probe`]: https://man7.org/linux/man-pages/man1/perf-probe.1.html
+///
+/// By default [Self::update_attrs] updates the defaults to those that make
+/// sense for tracepoints:
+/// 1. Named, static tracepoints are intrinsically kernel events, so
+///    `exclude_kernel` is set to false.
+/// 2. The watermark and wakeup values are set so that
+///    [crate::Sampler::next_blocking] works by default.
+/// 3. Sampling period is set to 1 - all tracepoints trigger.
 #[derive(Clone, Copy, Debug)]
 pub struct Tracepoint {
     id: u64,
@@ -57,14 +66,14 @@ impl Tracepoint {
     /// # let _ = run();
     /// ```
     pub fn with_name(name: impl AsRef<Path>) -> io::Result<Self> {
-        let mut path = PathBuf::from("/sys/kernel/debug/tracing/events");
-        path.push(name.as_ref());
-        path.push("id");
+        let path = PathBuf::from("/sys/kernel/debug/tracing/events")
+            .join(&name)
+            .join("id");
 
         let id = std::fs::read_to_string(&path)?
             .trim_end()
             .parse()
-            .map_err(move |e| io::Error::other(UnparseableIdFile::new(path, e)))?;
+            .map_err(|source| io::Error::other(UnparseableIdFile { path, source }))?;
 
         Ok(Self::with_id(id))
     }
@@ -78,33 +87,19 @@ impl Tracepoint {
 impl Event for Tracepoint {
     fn update_attrs(self, attr: &mut bindings::perf_event_attr) {
         attr.type_ = bindings::PERF_TYPE_TRACEPOINT;
+        attr.set_exclude_kernel(0);
+        attr.sample_type |= crate::SampleFlag::RAW.bits();
+        attr.sample_period = 1;
         attr.config = self.id;
+        attr.set_watermark(0);
+        attr.wakeup_events = 1;
     }
 }
 
-#[derive(Debug)]
-struct UnparseableIdFile {
+#[derive(Debug, Error)]
+#[error("unparseable tracepoint id file `{path:?}`")]
+pub struct UnparseableIdFile {
     path: PathBuf,
+    #[source]
     source: ParseIntError,
-}
-
-impl UnparseableIdFile {
-    fn new(path: PathBuf, source: ParseIntError) -> Self {
-        Self { path, source }
-    }
-}
-
-impl fmt::Display for UnparseableIdFile {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_fmt(format_args!(
-            "unparseable tracepoint id file `{}`",
-            self.path.display()
-        ))
-    }
-}
-
-impl std::error::Error for UnparseableIdFile {
-    fn cause(&self) -> Option<&dyn std::error::Error> {
-        Some(&self.source)
-    }
 }

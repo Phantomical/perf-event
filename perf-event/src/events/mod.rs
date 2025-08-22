@@ -91,6 +91,6 @@ pub trait Event: Sized {
 ///
 /// This is automatically implemented for any type which is both `Send` and
 /// `Sync`.
-pub trait EventData: Send + Sync {}
+pub trait EventData: Send + Sync + 'static {}
 
-impl<T: Send + Sync> EventData for T {}
+impl<T: Send + Sync + 'static> EventData for T {}

@@ -1,6 +1,6 @@
 [package]
 name = "perf-event2"
-version = "0.7.4"
+version = "0.8.0"
 description = "A Rust interface to Linux performance monitoring"
 license = "MIT OR Apache-2.0"
 authors = ["Sean Lynch <sean@lynches.ca>", "Jim Blandy <jimb@red-bean.com>"]
@@ -29,6 +29,7 @@ libc = "0.2"
 memmap2 = "0.9"
 perf-event-data = "0.1.8"
 perf-event-open-sys2 = "5.0.4"
+thiserror = "2.0.14"
 
 [dev-dependencies]
 ctrlc = "3.4.5"
