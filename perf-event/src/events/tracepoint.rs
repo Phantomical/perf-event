@@ -22,6 +22,14 @@ use crate::events::Event;
 /// [`perf probe`].
 ///
 /// [`perf probe`]: https://man7.org/linux/man-pages/man1/perf-probe.1.html
+///
+/// By default [Self::update_attrs] updates the defaults to those that make
+/// sense for tracepoints:
+/// 1. Named, static tracepoints are intrinsically kernel events, so
+///    `exclude_kernel` is set to false.
+/// 2. The watermark and wakeup values are set so that
+///    [crate::Sampler::next_blocking] works by default.
+/// 3. Sampling period is set to 1 - all tracepoints trigger.
 #[derive(Clone, Copy, Debug)]
 pub struct Tracepoint {
     id: u64,

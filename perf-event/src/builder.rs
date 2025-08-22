@@ -267,7 +267,27 @@ impl CpuPid {
 // Methods that actually do work on the builder and aren't just setting
 // config values.
 impl Builder {
-    /// Return a new `Builder`, with all parameters set to their defaults.
+    /// Return a new `Builder`, with all parameters set to their defaults for
+    /// the given event type. Each event type sets opinionated, unique
+    /// defaults. The defaults are chosen so as to make the resultant Builder
+    /// maximally useful. See the documentation for [crate::events::Tracepoint]
+    /// as an example.
+    ///
+    /// ```
+    /// # use perf_event::events::Tracepoint;
+    /// # use perf_event::Builder;
+    /// # use perf_event::events::Hardware;
+    /// let sched_switch = Tracepoint::with_id(0xabcd);
+    /// let cpu_cycles = Hardware::CPU_CYCLES;
+    ///
+    /// // b1 has defaults sensible for tracepoints.
+    /// let b1 = Builder::new(sched_switch);
+    /// assert_eq!(b1.attrs().wakeup_events, 1);
+    ///
+    /// // b2 has defaults sensible for hardware events.
+    /// let b2 = Builder::new(cpu_cycles);
+    /// assert_eq!(b2.attrs().wakeup_events, 0);
+    /// ```
     ///
     /// Return a new `Builder` for the specified event.
     pub fn new<E: Event>(event: E) -> Self {
