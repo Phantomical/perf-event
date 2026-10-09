@@ -386,7 +386,7 @@ impl Counter {
     /// that can be used to access them.
     ///
     /// There are some restrictions on the size of the mapped buffer. To
-    /// accomodate this `map_len` will always be rounded up to the next
+    /// accommodate this `map_len` will always be rounded up to the next
     /// power-of-two multiple of the system page size. There will always
     /// be at least two pages allocated for the ring buffer: one for the
     /// control data structures, and one for actual data.

@@ -97,7 +97,7 @@ impl UnparseableIdFile {
 impl fmt::Display for UnparseableIdFile {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_fmt(format_args!(
-            "unparseable tracepoint id file `{}`",
+            "unparsable tracepoint id file `{}`",
             self.path.display()
         ))
     }
