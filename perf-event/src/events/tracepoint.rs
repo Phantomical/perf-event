@@ -64,7 +64,7 @@ impl Tracepoint {
         let id = std::fs::read_to_string(&path)?
             .trim_end()
             .parse()
-            .map_err(move |e| io::Error::other(UnparseableIdFile::new(path, e)))?;
+            .map_err(move |e| io::Error::other(UnparsableIdFile::new(path, e)))?;
 
         Ok(Self::with_id(id))
     }
@@ -83,18 +83,18 @@ impl Event for Tracepoint {
 }
 
 #[derive(Debug)]
-struct UnparseableIdFile {
+struct UnparsableIdFile {
     path: PathBuf,
     source: ParseIntError,
 }
 
-impl UnparseableIdFile {
+impl UnparsableIdFile {
     fn new(path: PathBuf, source: ParseIntError) -> Self {
         Self { path, source }
     }
 }
 
-impl fmt::Display for UnparseableIdFile {
+impl fmt::Display for UnparsableIdFile {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_fmt(format_args!(
             "unparsable tracepoint id file `{}`",
@@ -103,7 +103,7 @@ impl fmt::Display for UnparseableIdFile {
     }
 }
 
-impl std::error::Error for UnparseableIdFile {
+impl std::error::Error for UnparsableIdFile {
     fn cause(&self) -> Option<&dyn std::error::Error> {
         Some(&self.source)
     }
