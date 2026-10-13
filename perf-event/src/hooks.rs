@@ -67,7 +67,7 @@ std::thread_local! {
 ///
 /// All subsequent uses by this crate of the underlying system calls
 /// and ioctls from the `perf_event_open_sys` crate are redirected to
-/// `hooks`' implementations of the correspoding methods from the
+/// `hooks`' implementations of the corresponding methods from the
 /// [`Hooks`] trait.
 ///
 /// This affects only the calling thread. Any previously established

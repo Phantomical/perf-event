@@ -696,7 +696,7 @@ impl<'a> Builder<'a> {
 
     /// Control how much skid is permitted when recording events.
     ///
-    /// Skid is the number of instructions that occur between an event occuring
+    /// Skid is the number of instructions that occur between an event occurring
     /// and a sample being gathered by the kernel. Less skid is better but
     /// there are hardware limitations around how small the skid can be.
     ///
@@ -790,7 +790,7 @@ impl<'a> Builder<'a> {
     /// If `clockid` is `None` then the kernel will use an internal timer. This
     /// timer may not be any of the options for clockid.
     ///
-    /// See [`Clock`] and the [`clock_getttime(2)`][0] manpage for
+    /// See [`Clock`] and the [`clock_gettime(2)`][0] manpage for
     /// documentation on what the different clock values mean.
     ///
     /// [0]: https://www.mankier.com/2/clock_gettime

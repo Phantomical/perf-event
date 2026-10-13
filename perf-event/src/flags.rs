@@ -46,7 +46,7 @@ impl ReadFormatExt for ReadFormat {
 
 /// Configuration of how much skid is allowed when gathering samples.
 ///
-/// Skid is the number of instructions that occur between an event occuring and
+/// Skid is the number of instructions that occur between an event occurring and
 /// a sample being gathered by the kernel. Less skid is better but there are
 /// hardware limitations around how small the skid can be.
 ///
