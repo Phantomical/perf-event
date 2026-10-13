@@ -13,8 +13,8 @@ use perf_event_open_sys::bindings;
 use crate::events::{Event, EventData};
 use crate::sys::bindings::perf_event_attr;
 use crate::{
-    check_errno_syscall, sys, Clock, Counter, Group, ReadFormat, SampleBranchFlag, SampleFlag,
-    SampleSkid,
+    Clock, Counter, Group, ReadFormat, SampleBranchFlag, SampleFlag, SampleSkid,
+    check_errno_syscall, sys,
 };
 
 /// A builder for [`Counter`]s.

@@ -1,8 +1,8 @@
 use std::process::ExitCode;
 use std::time::Duration;
 
-use perf_event::events::KProbe;
 use perf_event::Builder;
+use perf_event::events::KProbe;
 
 fn run() -> std::io::Result<()> {
     let func = "__x64_sys_write";

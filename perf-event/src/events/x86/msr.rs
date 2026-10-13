@@ -3,8 +3,8 @@ use std::io;
 use c_enum::c_enum;
 use perf_event_open_sys::bindings;
 
-use crate::events::{CachedPmuType, Event};
 use crate::Builder;
+use crate::events::{CachedPmuType, Event};
 
 used_in_docs!(Builder);
 

@@ -1,6 +1,6 @@
 use nix::unistd::SysconfVar;
-use perf_event::events::Software;
 use perf_event::Builder;
+use perf_event::events::Software;
 use perf_event_open_sys::bindings;
 
 use super::Hex;

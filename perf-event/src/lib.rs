@@ -245,8 +245,8 @@ impl Counter {
     /// # Examples
     /// Enable an individual counter:
     /// ```
-    /// use perf_event::events::Hardware;
     /// use perf_event::Builder;
+    /// use perf_event::events::Hardware;
     ///
     /// let mut counter = Builder::new(Hardware::INSTRUCTIONS).build()?;
     /// counter.enable()?;
@@ -302,8 +302,8 @@ impl Counter {
     /// # Examples
     /// Disable a single counter:
     /// ```
-    /// use perf_event::events::Hardware;
     /// use perf_event::Builder;
+    /// use perf_event::events::Hardware;
     ///
     /// let mut counter = Builder::new(Hardware::INSTRUCTIONS).build()?;
     /// counter.enable()?;
@@ -347,8 +347,8 @@ impl Counter {
     /// # Examples
     /// Reset a single counter
     /// ```
-    /// use perf_event::events::Hardware;
     /// use perf_event::Builder;
+    /// use perf_event::events::Hardware;
     ///
     /// let mut counter = Builder::new(Hardware::INSTRUCTIONS).build()?;
     /// counter.enable()?;
@@ -396,8 +396,8 @@ impl Counter {
     /// current process. If you do this early enough, you can then track what
     /// libraries your process is loading.
     /// ```
-    /// use perf_event::events::Software;
     /// use perf_event::Builder;
+    /// use perf_event::events::Software;
     ///
     /// let mut sampler = Builder::new(Software::DUMMY)
     ///     .mmap(true)
@@ -462,8 +462,8 @@ impl Counter {
     ///
     /// # Example
     /// ```
-    /// use perf_event::events::Hardware;
     /// use perf_event::Builder;
+    /// use perf_event::events::Hardware;
     ///
     /// let mut counter = Builder::new(Hardware::INSTRUCTIONS).enabled(true).build()?;
     ///
