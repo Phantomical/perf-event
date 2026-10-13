@@ -55,5 +55,8 @@ impl Event for Hardware {
     fn update_attrs(self, attr: &mut bindings::perf_event_attr) {
         attr.type_ = bindings::PERF_TYPE_HARDWARE;
         attr.config = self.into();
+        attr.set_disabled(1);
+        attr.set_exclude_kernel(1);
+        attr.set_exclude_hv(1);
     }
 }

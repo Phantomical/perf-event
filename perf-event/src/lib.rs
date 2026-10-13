@@ -64,7 +64,7 @@
 //!
 //! Linux's `perf_event_open` API can report all sorts of things this crate
 //! doesn't yet understand: stack traces, logs of executable and shared library
-//! activity, tracepoints, kprobes, uprobes, and so on. And beyond the counters
+//! activity, kprobes, uprobes, and so on. And beyond the counters
 //! in the kernel header files, there are others that can only be found at
 //! runtime by consulting `sysfs`, specific to particular processors and
 //! devices. For example, modern Intel processors have counters that measure
@@ -142,7 +142,7 @@ pub use perf_event_data as data;
 #[cfg(not(feature = "hooks"))]
 use perf_event_open_sys as sys;
 
-pub use crate::builder::{Builder, UnsupportedOptionsError};
+pub use crate::builder::{Builder, CpuPid, UnsupportedOptionsError};
 #[doc(inline)]
 pub use crate::data::{ReadFormat, SampleFlags as SampleFlag};
 pub use crate::flags::{Clock, SampleBranchFlag, SampleSkid};
@@ -884,6 +884,7 @@ mod tests {
 
         // CPU_CLOCK is literally always supported so we don't have to worry
         // about test failures when in VMs.
+        // There should _hopefully_ never be a system with this many CPUs.
         let builder = Builder::new(events::Software::CPU_CLOCK)
             // There should _hopefully_ never be a system with this many CPUs.
             .one_cpu(i32::MAX as usize)
