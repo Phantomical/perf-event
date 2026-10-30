@@ -75,7 +75,7 @@ impl KProbe {
     /// This will attempt to read the kprobe PMU type from
     /// `/sys/bus/event_source`. It will return an error if the kprobe PMU is
     /// not available or the filesystem exposed by the kernel there is otherwise
-    /// unparseable.
+    /// unparsable.
     pub fn for_function(retprobe: bool, func: CString, offset: u64) -> io::Result<Self> {
         Ok(Self(Probe {
             ty: KPROBE_TYPE.get()?,
@@ -90,7 +90,7 @@ impl KProbe {
     /// This will attempt to read the kprobe PMU type from
     /// `/sys/bus/event_source`. It will return an error if the kprobe PMU is
     /// not available or the filesystem exposed by the kernel there is otherwise
-    /// unparseable.
+    /// unparsable.
     pub fn for_addr(retprobe: bool, addr: u64) -> io::Result<Self> {
         Ok(Self(Probe {
             ty: UPROBE_TYPE.get()?,
@@ -111,7 +111,7 @@ impl KProbe {
     /// This will attempt to read the kprobe PMU type from
     /// `/sys/bus/event_source`. It will return an error if the kprobe PMU is
     /// not available or the filesystem exposed by the kernel there is otherwise
-    /// unparseable.
+    /// unparsable.
     ///
     /// # Panics
     /// Panics if `func` contains a nul byte other than at the very end.
@@ -125,7 +125,7 @@ impl KProbe {
     /// This will attempt to read the kprobe PMU type from
     /// `/sys/bus/event_source`. It will return an error if the kprobe PMU is
     /// not available or the filesystem exposed by the kernel there is otherwise
-    /// unparseable.
+    /// unparsable.
     ///
     /// # Panics
     /// Panics if `func` contains a nul byte other than at the very end.
@@ -185,7 +185,7 @@ impl UProbe {
     /// This will attempt to read the kprobe PMU type from
     /// `/sys/bus/event_source`. It will return an error if the uprobe PMU is
     /// not available or the filesystem exposed by the kernel there is otherwise
-    /// unparseable.
+    /// unparsable.
     pub fn new(retprobe: bool, path: CString, offset: u64) -> io::Result<Self> {
         Ok(Self(Probe {
             ty: UPROBE_TYPE.get()?,
@@ -206,7 +206,7 @@ impl UProbe {
     /// This will attempt to read the kprobe PMU type from
     /// `/sys/bus/event_source`. It will return an error if the uprobe PMU is
     /// not available or the filesystem exposed by the kernel there is otherwise
-    /// unparseable.
+    /// unparsable.
     pub fn probe(path: impl AsRef<Path>, offset: u64) -> io::Result<Self> {
         Self::new_generic(false, path, offset)
     }
@@ -217,7 +217,7 @@ impl UProbe {
     /// This will attempt to read the kprobe PMU type from
     /// `/sys/bus/event_source`. It will return an error if the uprobe PMU is
     /// not available or the filesystem exposed by the kernel there is otherwise
-    /// unparseable.
+    /// unparsable.
     pub fn retprobe(path: impl AsRef<Path>, offset: u64) -> io::Result<Self> {
         Self::new_generic(true, path, offset)
     }

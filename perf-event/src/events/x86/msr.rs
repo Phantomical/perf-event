@@ -65,7 +65,7 @@ c_enum! {
         ///
         /// This counter is similar to `APERF` but only counts cycles perceived
         /// by the hardware as contributing to instruction execution (i.e. not
-        /// halted and not stalled). This counter increments at teh same rate
+        /// halted and not stalled). This counter increments at the same rate
         /// as `APERF` and the ratio `PPERF / APERF` can be used as an
         /// indicator of workload scalability.
         ///

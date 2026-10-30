@@ -87,7 +87,7 @@ struct Field {
 
 /// Builder for a [`Dynamic`] event.
 ///
-/// The linux kernel exposes dynamic perfomance monitoring units (PMUs) using a
+/// The linux kernel exposes dynamic performance monitoring units (PMUs) using a
 /// special filesystem under `/sys/bus/event_source/devices`. This builder reads
 /// the config files for a specified PMU and allows you to set their values by
 /// using the kernel-specified names instead of having to directly set the right
@@ -337,7 +337,7 @@ impl DynamicBuilder {
     /// # Errors
     /// An error will be returned if
     /// - `field` did not exist in the format description for the PMU, or,
-    /// - `value` was larger than the availabel bits for `field`.
+    /// - `value` was larger than the available bits for `field`.
     pub fn field(&mut self, field: &str, value: u64) -> Result<&mut Self, DynamicBuilderError> {
         let field = self
             .fields

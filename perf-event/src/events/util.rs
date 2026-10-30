@@ -7,7 +7,7 @@ use std::{fmt, io};
 ///
 /// To get the type of a dynamic PMU event you must read its type from the file
 /// at `/sys/bus/event_source/devices/<pmu>/type`. However, the type of the PMU
-/// doesn't change so it is better to cache it insted of reading a file every
+/// doesn't change so it is better to cache it instead of reading a file every
 /// time.
 ///
 /// See the implementation of the kprobe and uprobe events for an example of how

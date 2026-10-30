@@ -102,7 +102,7 @@ impl Sampler {
         //   read here.
         let tail = unsafe { ptr::read(ptr::addr_of!((*page).data_tail)) };
         // ATOMICS:
-        // - The acquire load here syncronizes with the release store in the kernel and
+        // - The acquire load here synchronizes with the release store in the kernel and
         //   ensures that all the data written to the ring buffer before data_head is
         //   visible to this thread.
         // SAFETY:
@@ -353,7 +353,7 @@ macro_rules! read_once {
 }
 
 // This is meant to be the equivalent of the kernel barrier macro. It prevents
-// the compiler from reordering any memory accesses accross the barrier.
+// the compiler from reordering any memory accesses across the barrier.
 macro_rules! barrier {
     () => {
         std::sync::atomic::compiler_fence(Ordering::SeqCst)
@@ -823,7 +823,7 @@ unsafe fn atomic_load<T: Atomic>(ptr: *const T, order: Ordering) -> T {
 /// # Safety
 /// - `index` must be a valid PMC index
 /// - The current CPU must be allowed to execute the `rdpmc` instruction at the
-///   current priviledge level.
+///   current privilege level.
 ///
 /// Note that the safety constraints come from the x86 ISA so any violation of
 /// them will likely lead to a SIGINT or other such signal.
