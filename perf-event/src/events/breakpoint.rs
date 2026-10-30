@@ -172,8 +172,8 @@ impl Event for Breakpoint {
             Self::Code { addr } => {
                 attr.bp_type = bindings::HW_BREAKPOINT_X;
                 attr.bp_addr = addr;
-                // According to the perf_event_open man page, execute breakpoints
-                // should set len to sizeof(long).
+                // According to the perf_event_open man page, execute
+                // breakpoints should set len to sizeof(long).
                 attr.bp_len = std::mem::size_of::<libc::c_long>() as _;
             }
         }

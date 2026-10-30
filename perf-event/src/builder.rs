@@ -152,9 +152,9 @@ impl<'a> Builder<'a> {
     /// events do not have to worry about resetting state that other events may
     /// have set.
     pub fn event<E: Event>(&mut self, event: E) -> &mut Self {
-        // Reset existing config fields before updating for the event. This ensures
-        // that left over config values for the previous event don't cause
-        // an error.
+        // Reset existing config fields before updating for the event. This
+        // ensures that left over config values for the previous event
+        // don't cause an error.
         self.attrs.type_ = bindings::PERF_TYPE_HARDWARE;
         self.attrs.config = 0;
         self.attrs.config1 = 0;

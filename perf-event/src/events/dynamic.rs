@@ -181,10 +181,11 @@ struct Field {
 /// ```
 ///
 /// # Note
-/// In some cases, the kernel PMU driver might return an `EINVAL`. To shave a bit
-/// of time off your debugging journey, please note that the [`exclude_kernel`][exk] and
-/// [`exclude_hv`][exhv] fields are set to true by default. For example, the uncore
-/// [`nvidia_scf_pmu`][scf] will not accept a value of true for those fields.
+/// In some cases, the kernel PMU driver might return an `EINVAL`. To shave a
+/// bit of time off your debugging journey, please note that the
+/// [`exclude_kernel`][exk] and [`exclude_hv`][exhv] fields are set to true by
+/// default. For example, the uncore [`nvidia_scf_pmu`][scf] will not accept a
+/// value of true for those fields.
 ///
 /// [`build`]: Self::build
 /// [`field`]: Self::field

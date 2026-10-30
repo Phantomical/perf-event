@@ -98,13 +98,13 @@ impl Sampler {
 
         // SAFETY:
         // - page points to a valid instance of perf_event_mmap_page.
-        // - data_tail is only written by the user side so it is safe to do a non-atomic
-        //   read here.
+        // - data_tail is only written by the user side so it is safe to do a
+        //   non-atomic read here.
         let tail = unsafe { ptr::read(ptr::addr_of!((*page).data_tail)) };
         // ATOMICS:
-        // - The acquire load here synchronizes with the release store in the kernel and
-        //   ensures that all the data written to the ring buffer before data_head is
-        //   visible to this thread.
+        // - The acquire load here synchronizes with the release store in the
+        //   kernel and ensures that all the data written to the ring buffer
+        //   before data_head is visible to this thread.
         // SAFETY:
         // - page points to a valid instance of perf_event_mmap_page.
         let head = unsafe { atomic_load(ptr::addr_of!((*page).data_head), Ordering::Acquire) };
@@ -115,8 +115,8 @@ impl Sampler {
 
         // SAFETY: (for both statements)
         // - page points to a valid instance of perf_event_mmap_page.
-        // - neither of these fields are written to except before the map is created so
-        //   reading from them non-atomically is safe.
+        // - neither of these fields are written to except before the map is
+        //   created so reading from them non-atomically is safe.
         let data_size = unsafe { ptr::read(ptr::addr_of!((*page).data_size)) };
         let data_offset = unsafe { ptr::read(ptr::addr_of!((*page).data_offset)) };
 
@@ -124,8 +124,8 @@ impl Sampler {
         let mod_head = (head % data_size) as usize;
 
         // SAFETY:
-        // - perf_event_open guarantees that page.data_offset is within the memory
-        //   mapping.
+        // - perf_event_open guarantees that page.data_offset is within the
+        //   memory mapping.
         let data_start = unsafe { self.mmap.as_ptr().add(data_offset as usize) };
         // SAFETY:
         // - data_start is guaranteed to be valid for at least data_size bytes.
@@ -279,8 +279,8 @@ impl Sampler {
             if let Some(index) = data.index() {
                 // SAFETY:
                 // - index was handed to us by the kernel so it is safe to use.
-                // - cap_user_rdpmc will only be set if it is valid to call rdpmc from
-                //   userspace.
+                // - cap_user_rdpmc will only be set if it is valid to call
+                //   rdpmc from userspace.
                 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
                 data.with_pmc(unsafe { rdpmc(index) });
             }
@@ -621,8 +621,9 @@ impl<'s> Record<'s> {
 
         let (mut parser, metadata) = parser.parse_metadata_with_header(self.header)?;
 
-        // All other records either already parsed the sample id or don't have it.
-        // With SAMPLE records, we can construct the sample id struct directly.
+        // All other records either already parsed the sample id or don't have
+        // it. With SAMPLE records, we can construct the sample id
+        // struct directly.
         if self.ty() != bindings::PERF_RECORD_SAMPLE {
             return Ok(*metadata.sample_id());
         }
@@ -641,13 +642,13 @@ impl<'s> Drop for Record<'s> {
         unsafe {
             // SAFETY:
             // - page points to a valid instance of perf_event_mmap_page
-            // - data_tail is only written on our side so it is safe to do a non-atomic read
-            //   here.
+            // - data_tail is only written on our side so it is safe to do a
+            //   non-atomic read here.
             let tail = ptr::read(ptr::addr_of!((*page).data_tail));
 
             // ATOMICS:
-            // - The release store here prevents the compiler from re-ordering any reads
-            //   past the store to data_tail.
+            // - The release store here prevents the compiler from re-ordering
+            //   any reads past the store to data_tail.
             // SAFETY:
             // - page points to a valid instance of perf_event_mmap_page
             atomic_store(
